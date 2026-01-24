@@ -43,47 +43,132 @@ const mapPlaceTypeToCuisine = (
 
   // Keyword patterns for cuisine detection in restaurant names
   const keywordPatterns: Record<string, CuisineType> = {
+    // Chinese
     chinese: "Chinese",
+    中国: "Chinese",
+    中華: "Chinese",
     dim_sum: "Chinese",
-    noodle: "Chinese",
+    dimsum: "Chinese",
+    "beef noodle": "Chinese",
+    "pork noodle": "Chinese",
+    "fish ball": "Chinese",
     wonton: "Chinese",
+    dumpling: "Chinese",
+    "roast duck": "Chinese",
+    "char siew": "Chinese",
+    "char siu": "Chinese",
+    "chow mein": "Chinese",
+    congee: "Chinese",
+    porridge: "Chinese",
+    cantonese: "Chinese",
+    hokkien: "Chinese",
+    hakka: "Chinese",
+    szechuan: "Chinese",
+    sichuan: "Chinese",
+
+    // Malaysian (often overlaps with Chinese)
+    malay: "Malay",
+    nasi: "Malay",
+    "nasi lemak": "Malay",
+    "nasi kandar": "Malay",
+    mamak: "Malay",
+    satay: "Malay",
+    rendang: "Malay",
+    laksa: "Malay",
+    "char kway teow": "Chinese",
+    "char kuey teow": "Chinese",
+    "hokkien mee": "Chinese",
+    "curry mee": "Malay",
+    "roti canai": "Malay",
+
+    // Japanese
     japanese: "Japanese",
+    日本: "Japanese",
     sushi: "Japanese",
     ramen: "Japanese",
     tempura: "Japanese",
+    sashimi: "Japanese",
+    udon: "Japanese",
+    teriyaki: "Japanese",
+    yakitori: "Japanese",
+    izakaya: "Japanese",
+
+    // Korean
     korean: "Korean",
+    한국: "Korean",
     kimchi: "Korean",
+    bibimbap: "Korean",
+    bulgogi: "Korean",
+    "korean bbq": "Korean",
+    gogi: "Korean",
+
+    // BBQ & Hot Pot
     bbq: "BBQ",
-    korean_bbq: "Korean",
+    barbecue: "BBQ",
+    grill: "BBQ",
+    "hot pot": "Hot Pot",
+    hotpot: "Hot Pot",
+    steamboat: "Hot Pot",
+    shabu: "Hot Pot",
+
+    // Indian
     indian: "Indian",
     curry: "Indian",
     tandoori: "Indian",
     biryani: "Indian",
+    masala: "Indian",
+    tikka: "Indian",
+
+    // Italian
     italian: "Italian",
     pizza: "Italian",
     pasta: "Italian",
+    pizzeria: "Italian",
+    trattoria: "Italian",
+
+    // Thai
     thai: "Thai",
+    ไทย: "Thai",
     tom_yum: "Thai",
+    "tom yum": "Thai",
     pad_thai: "Thai",
+    "pad thai": "Thai",
+    "green curry": "Thai",
+    "red curry": "Thai",
+
+    // Vietnamese
     vietnamese: "Vietnamese",
+    việt: "Vietnamese",
     pho: "Vietnamese",
-    banh_mi: "Vietnamese",
+    "banh mi": "Vietnamese",
+    "spring roll": "Vietnamese",
+
+    // Mexican
     mexican: "Mexican",
     taco: "Mexican",
     burrito: "Mexican",
+    enchilada: "Mexican",
+
+    // Western
     western: "Western",
     steak: "Western",
     burger: "Western",
-    malay: "Malay",
-    nasi: "Malay",
-    mamak: "Malay",
-    satay: "Malay",
-    hot_pot: "Hot Pot",
-    steamboat: "Hot Pot",
+    american: "Western",
+    bistro: "Western",
+
+    // Cafe & Bakery
     cafe: "Cafe",
     coffee: "Cafe",
+    espresso: "Cafe",
+    latte: "Cafe",
     bakery: "Bakery",
     bread: "Bakery",
+    patisserie: "Bakery",
+
+    // Fast Food
+    "fast food": "Fast Food",
+    "fried chicken": "Fast Food",
+    kfc: "Fast Food",
   };
 
   const cuisines: CuisineType[] = [];
