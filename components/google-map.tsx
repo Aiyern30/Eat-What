@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useLoadScript,
+  GoogleMap as GoogleMapComponent,
+  MarkerF,
+  InfoWindowF,
+} from "@react-google-maps/api";
+import { useState, useMemo } from "react";
 import { Restaurant, Location } from "@/types/restaurant";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -12,6 +18,10 @@ interface GoogleMapProps {
   userLocation?: Location;
 }
 
+const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = [
+  "places",
+];
+
 export function GoogleMap({
   center,
   restaurants,
@@ -19,114 +29,153 @@ export function GoogleMap({
   zoom = 12,
   userLocation,
 }: GoogleMapProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.Marker[]>([]);
-  const [loading, setLoading] = useState(true);
-  const userMarkerRef = useRef<google.maps.Marker | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] =
+    useState<Restaurant | null>(null);
 
-  // Initialize map
-  useEffect(() => {
-    if (!mapRef.current || !window.google) return;
+  const GoogleMapAPI = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-    const mapInstance = new google.maps.Map(mapRef.current, {
-      center,
-      zoom,
+  if (!GoogleMapAPI) {
+    throw new Error(
+      "Google Maps API key is missing. Please set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your environment variables.",
+    );
+  }
+
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: GoogleMapAPI,
+    libraries,
+  });
+
+  const mapContainerStyle = useMemo(
+    () => ({
+      width: "100%",
+      height: "100%",
+    }),
+    [],
+  );
+
+  const mapOptions = useMemo<google.maps.MapOptions>(
+    () => ({
+      disableDefaultUI: false,
+      clickableIcons: false,
+      scrollwheel: true,
+      styles: [
+        {
+          featureType: "poi",
+          elementType: "labels",
+          stylers: [{ visibility: "off" }],
+        },
+      ],
       mapTypeControl: false,
       fullscreenControl: true,
       streetViewControl: false,
-    });
+    }),
+    [],
+  );
 
-    setMap(mapInstance);
-    setLoading(false);
-  }, [center, center.lat, center.lng, zoom]);
-
-  // Update center when it changes
-  useEffect(() => {
-    if (map) {
-      map.setCenter(center);
+  const handleMarkerClick = (restaurant: Restaurant) => {
+    setSelectedRestaurant(restaurant);
+    if (onRestaurantClick) {
+      onRestaurantClick(restaurant);
     }
-  }, [map, center]);
+  };
 
-  // Update user location marker
-  useEffect(() => {
-    if (!map || !userLocation) return;
-
-    if (userMarkerRef.current) {
-      userMarkerRef.current.setMap(null);
-    }
-
-    const userMarker = new google.maps.Marker({
-      position: userLocation,
-      map,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: "#4285F4",
-        fillOpacity: 1,
-        strokeColor: "#ffffff",
-        strokeWeight: 2,
-      },
-      title: "Your Location",
-      zIndex: 1000,
-    });
-
-    userMarkerRef.current = userMarker;
-  }, [map, userLocation]);
-
-  // Update restaurant markers
-  useEffect(() => {
-    if (!map) return;
-
-    markersRef.current.forEach((marker) => marker.setMap(null));
-    markersRef.current = [];
-
-    const newMarkers = restaurants.map((restaurant) => {
-      const marker = new google.maps.Marker({
-        position: restaurant.location,
-        map,
-        title: restaurant.name,
-        icon: {
-          url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCAzMiA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTYgMEMxMC40NzcyIDAgNiA0LjQ3NzE1IDYgMTBDNiAxNy41IDE2IDMwIDE2IDMwQzE2IDMwIDI2IDE3LjUgMjYgMTBDMjYgNC40NzcxNSAyMS41MjI4IDAgMTYgMFoiIGZpbGw9IiNGRjU3MjIiLz48Y2lyY2xlIGN4PSIxNiIgY3k9IjEwIiByPSI0IiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==",
-          scaledSize: new google.maps.Size(32, 40),
-          anchor: new google.maps.Point(16, 40),
-        },
-      });
-
-      const infoWindow = new google.maps.InfoWindow({
-        content: `
-          <div class="p-2" style="max-width: 200px;">
-            <h3 class="font-semibold text-sm mb-1">${restaurant.name}</h3>
-            <p class="text-xs text-gray-600 mb-1">${restaurant.cuisine.join(", ")}</p>
-            <div class="flex items-center justify-between text-xs">
-              <span>⭐ ${restaurant.rating}</span>
-              <span>${restaurant.priceRange}</span>
-            </div>
-            ${restaurant.distance ? `<p class="text-xs text-gray-500 mt-1">${restaurant.distance.toFixed(1)}km away</p>` : ""}
-          </div>
-        `,
-      });
-
-      marker.addListener("click", () => {
-        infoWindow.open(map, marker);
-        if (onRestaurantClick) {
-          onRestaurantClick(restaurant);
-        }
-      });
-
-      return marker;
-    });
-
-    markersRef.current = newMarkers;
-  }, [map, restaurants, onRestaurantClick]);
-
-  if (loading) {
+  if (loadError) {
     return (
-      <div className="flex h-full items-center justify-center rounded-lg bg-muted">
-        <Spinner className="h-8 w-8" />
+      <div className="w-full h-full flex items-center justify-center bg-muted">
+        <div className="text-center">
+          <p className="text-sm text-destructive mb-2">
+            Failed to load Google Maps
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Please check your API key and try again
+          </p>
+        </div>
       </div>
     );
   }
 
-  return <div ref={mapRef} className="h-full w-full rounded-lg" />;
+  if (!isLoaded) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-muted">
+        <div className="text-center">
+          <Spinner className="h-8 w-8 mb-2" />
+          <p className="text-sm text-muted-foreground">Loading map...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <GoogleMapComponent
+      mapContainerStyle={mapContainerStyle}
+      center={center}
+      zoom={zoom}
+      options={mapOptions}
+    >
+      {/* User location marker */}
+      {userLocation && (
+        <MarkerF
+          position={userLocation}
+          icon={{
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: "#4285F4",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+          }}
+          title="Your Location"
+          zIndex={1000}
+        />
+      )}
+
+      {/* Restaurant markers */}
+      {restaurants.map((restaurant) => (
+        <MarkerF
+          key={restaurant.id}
+          position={restaurant.location}
+          title={restaurant.name}
+          onClick={() => handleMarkerClick(restaurant)}
+          icon={{
+            url:
+              "data:image/svg+xml;charset=UTF-8," +
+              encodeURIComponent(`
+              <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="16" cy="16" r="12" fill="#ef4444"/>
+                <circle cx="16" cy="16" r="8" fill="white"/>
+              </svg>
+            `),
+            scaledSize: new google.maps.Size(32, 32),
+          }}
+        />
+      ))}
+
+      {/* Info window for selected restaurant */}
+      {selectedRestaurant && (
+        <InfoWindowF
+          position={selectedRestaurant.location}
+          onCloseClick={() => setSelectedRestaurant(null)}
+        >
+          <div className="p-2 max-w-xs">
+            <h3 className="font-semibold text-sm mb-1">
+              {selectedRestaurant.name}
+            </h3>
+            <p className="text-xs text-muted-foreground mb-1">
+              {selectedRestaurant.cuisine.join(", ")}
+            </p>
+            <div className="flex items-center gap-2 text-xs">
+              <span>⭐ {selectedRestaurant.rating}</span>
+              <span>•</span>
+              {/* <span>{"$".repeat(selectedRestaurant.priceLevel)}</span> */}
+            </div>
+            {selectedRestaurant.distance && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {selectedRestaurant.distance.toFixed(1)}km away
+              </p>
+            )}
+          </div>
+        </InfoWindowF>
+      )}
+    </GoogleMapComponent>
+  );
 }
