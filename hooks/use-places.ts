@@ -7,7 +7,8 @@ interface UsePlacesResult {
   restaurants: Restaurant[];
   loading: boolean;
   error: string | null;
-  searchNearby: (location: Location, radius?: number) => Promise<void>;
+  searchNearby: (location: Location, radius?: number, limit?: number) => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 // Map Google Places types to our cuisine types
@@ -60,10 +61,12 @@ export function usePlaces(): UsePlacesResult {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastSearchParams, setLastSearchParams] = useState<{ location: Location; radius: number; limit: number } | null>(null);
 
-  const searchNearby = useCallback(async (location: Location, radius: number = 5000) => {
+  const searchNearby = useCallback(async (location: Location, radius: number = 5000, limit: number = 50) => {
     setLoading(true);
     setError(null);
+    setLastSearchParams({ location, radius, limit });
 
     try {
       // Load Google Maps library
@@ -83,7 +86,7 @@ export function usePlaces(): UsePlacesResult {
 
       service.nearbySearch(request, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          const mappedRestaurants: Restaurant[] = results.slice(0, 50).map((place, index) => {
+          const mappedRestaurants: Restaurant[] = results.slice(0, limit).map((place, index) => {
             const cuisine = mapPlaceTypeToCuisine(place.types || []);
             const priceLevel = place.price_level || 2;
             
@@ -121,10 +124,17 @@ export function usePlaces(): UsePlacesResult {
     }
   }, []);
 
+  const refresh = useCallback(async () => {
+    if (lastSearchParams) {
+      await searchNearby(lastSearchParams.location, lastSearchParams.radius, lastSearchParams.limit);
+    }
+  }, [lastSearchParams, searchNearby]);
+
   return {
     restaurants,
     loading,
     error,
     searchNearby,
+    refresh,
   };
 }

@@ -60,6 +60,7 @@ export function FilterPanel({
       priceRange: [],
       minRating: 0,
       openNow: false,
+      resultLimit: 50,
     });
   };
 
@@ -99,6 +100,23 @@ export function FilterPanel({
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>1km</span>
           <span>15km</span>
+        </div>
+      </div>
+
+      {/* Result Limit Filter */}
+      <div className="space-y-2">
+        <Label>Show Results: {filters.resultLimit}</Label>
+        <Slider
+          value={[filters.resultLimit]}
+          onValueChange={([value]) => updateFilter("resultLimit", value)}
+          max={50}
+          min={20}
+          step={10}
+          className="w-full"
+        />
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>20</span>
+          <span>50</span>
         </div>
       </div>
 

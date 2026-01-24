@@ -34,7 +34,7 @@ export function RestaurantCard({ restaurant, onClick }: RestaurantCardProps) {
 
   return (
     <Card
-      className="group cursor-pointer transition-all hover:shadow-lg"
+      className="group flex cursor-pointer flex-col transition-all hover:shadow-lg"
       onClick={onClick}
     >
       <CardHeader className="p-0">
@@ -71,14 +71,14 @@ export function RestaurantCard({ restaurant, onClick }: RestaurantCardProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="p-4">
-        <div className="mb-2">
-          <h3 className="text-lg font-semibold">{restaurant.name}</h3>
-          <p className="text-sm text-muted-foreground">
+      <CardContent className="flex-1 space-y-3 p-4">
+        <div>
+          <h3 className="text-lg font-semibold leading-tight">{restaurant.name}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             {restaurant.cuisine.join(", ")}
           </p>
         </div>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
             <span className="font-medium">{restaurant.rating}</span>
@@ -87,7 +87,7 @@ export function RestaurantCard({ restaurant, onClick }: RestaurantCardProps) {
             {restaurant.priceRange}
           </span>
         </div>
-        <div className="mb-2 flex items-start gap-2 text-sm text-muted-foreground">
+        <div className="flex items-start gap-2 text-sm text-muted-foreground">
           <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
           <span className="line-clamp-2">{restaurant.address}</span>
         </div>
@@ -101,7 +101,7 @@ export function RestaurantCard({ restaurant, onClick }: RestaurantCardProps) {
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex gap-2 p-4 pt-0">
+      <CardFooter className="mt-auto flex gap-2 border-t p-4">
         <Button
           variant="default"
           size="sm"

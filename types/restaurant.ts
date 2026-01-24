@@ -58,6 +58,7 @@ export interface FilterState {
   priceRange: PriceRange[]
   minRating: number
   openNow: boolean
+  resultLimit: number // 20-50 restaurants
 }
 
 export interface UserLocation {

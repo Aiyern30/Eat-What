@@ -10,7 +10,7 @@ import { RestaurantList } from "@/components/restaurant-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Map, List, MapPin, Search, Loader2 } from "lucide-react";
+import { Map, List, MapPin, Search, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { GoogleMap } from "@/components/google-map";
@@ -29,6 +29,7 @@ export default function Home() {
     priceRange: [],
     minRating: 0,
     openNow: false,
+    resultLimit: 50,
   });
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,6 +44,7 @@ export default function Home() {
     loading: placesLoading,
     error: placesError,
     searchNearby,
+    refresh,
   } = usePlaces();
   const isMobile = useIsMobile();
 
@@ -62,12 +64,12 @@ export default function Home() {
       // Search for nearby restaurants
       if (!hasSearchedPlaces.current) {
         const radiusInMeters = filters.distance * 1000; // Convert km to meters
-        searchNearby(location.coords, radiusInMeters);
+        searchNearby(location.coords, radiusInMeters, filters.resultLimit);
         hasSearchedPlaces.current = true;
         toast.success("Finding restaurants near you...");
       }
     }
-  }, [location, filters.distance, searchNearby]);
+  }, [location, filters.distance, filters.resultLimit, searchNearby]);
 
   // Show error toast
   useEffect(() => {
@@ -91,9 +93,9 @@ export default function Home() {
   useEffect(() => {
     if (location && hasSearchedPlaces.current) {
       const radiusInMeters = filters.distance * 1000;
-      searchNearby(location.coords, radiusInMeters);
+      searchNearby(location.coords, radiusInMeters, filters.resultLimit);
     }
-  }, [filters.distance, location, searchNearby]);
+  }, [filters.distance, filters.resultLimit, location, searchNearby]);
 
   // Filter and sort restaurants
   const filteredRestaurants = useMemo(() => {
@@ -174,6 +176,11 @@ export default function Home() {
     }
   };
 
+  const handleRefresh = async () => {
+    await refresh();
+    toast.success("Refreshing restaurant list...");
+  };
+
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* Header */}
@@ -190,22 +197,37 @@ export default function Home() {
                 className="bg-white pl-10"
               />
             </div>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                hasSearchedPlaces.current = false;
-                getCurrentLocation();
-              }}
-              disabled={loading || placesLoading}
-              className="whitespace-nowrap"
-            >
-              {loading || placesLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <MapPin className="mr-2 h-4 w-4" />
-              )}
-              {location ? "Update Location" : "Get My Location"}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={handleRefresh}
+                disabled={placesLoading || !location}
+                className="whitespace-nowrap"
+                title="Refresh restaurant list"
+              >
+                {placesLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  hasSearchedPlaces.current = false;
+                  getCurrentLocation();
+                }}
+                disabled={loading || placesLoading}
+                className="whitespace-nowrap"
+              >
+                {loading || placesLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <MapPin className="mr-2 h-4 w-4" />
+                )}
+                {location ? "Update Location" : "Get My Location"}
+              </Button>
+            </div>
           </div>
           {location?.address && (
             <p className="mt-2 text-sm text-white/90">📍 {location.address}</p>
