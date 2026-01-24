@@ -6,6 +6,10 @@ export type CuisineType =
   | "Japanese"
   | "Korean"
   | "Thai"
+  | "Vietnamese"
+  | "Mexican"
+  | "Italian"
+  | "Asian"
   | "Hot Pot"
   | "BBQ"
   | "Buffet"
@@ -13,7 +17,7 @@ export type CuisineType =
   | "Cafe"
   | "Bakery"
 
-export type PriceRange = "$" | "$$" | "$$$"
+export type PriceRange = "$" | "$$" | "$$$" | "$$$$"
 
 export type DietaryOption = "Halal" | "Vegetarian" | "Vegan"
 
@@ -34,6 +38,7 @@ export interface Restaurant {
   cuisine: CuisineType[]
   rating: number
   priceRange: PriceRange
+  priceLevel?: number // 1-4 scale from Google Places
   location: Location
   address: string
   area: string
@@ -42,6 +47,7 @@ export interface Restaurant {
   dietaryOptions: DietaryOption[]
   openingHours?: OpeningHours[]
   distance?: number // Will be calculated based on user location
+  isOpen?: boolean // Current open status from Google Places
 }
 
 export interface FilterState {

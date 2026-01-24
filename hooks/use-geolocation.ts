@@ -14,12 +14,12 @@ export function useGeolocation() {
         `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.lat},${coords.lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`,
       );
       const data = await response.json();
-      
+
       if (data.status === "REQUEST_DENIED") {
         console.warn("Geocoding API not enabled. Address lookup disabled.");
         return;
       }
-      
+
       if (data.results && data.results[0]) {
         setLocation((prev) => ({
           coords: prev!.coords,

@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Restaurant, FilterState, Location } from "@/types/restaurant";
-import { MOCK_RESTAURANTS } from "@/data/restaurants";
 import { useGeolocation } from "@/hooks/use-geolocation";
+import { usePlaces } from "@/hooks/use-places";
 import { calculateDistance, isRestaurantOpen } from "@/lib/utils";
 import { FilterPanel } from "@/components/filter-panel";
-import { GoogleMap } from "@/components/google-map";
 import { RestaurantList } from "@/components/restaurant-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, List, MapPin, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { GoogleMap } from "@/components/google-map";
 
 const DEFAULT_CENTER: Location = {
   lat: 3.139, // Kuala Lumpur center
@@ -35,8 +35,15 @@ export default function Home() {
   const [mapCenter, setMapCenter] = useState<Location>(DEFAULT_CENTER);
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const hasInitializedLocation = useRef(false);
+  const hasSearchedPlaces = useRef(false);
 
   const { location, error, loading, getCurrentLocation } = useGeolocation();
+  const {
+    restaurants: placesRestaurants,
+    loading: placesLoading,
+    error: placesError,
+    searchNearby,
+  } = usePlaces();
   const isMobile = useIsMobile();
 
   // Get user location on mount
@@ -44,16 +51,23 @@ export default function Home() {
     getCurrentLocation();
   }, [getCurrentLocation]);
 
-  // Update map center when user location is first obtained
+  // Update map center and search for nearby restaurants when user location is first obtained
   useEffect(() => {
     if (location && !hasInitializedLocation.current) {
       // This is a valid use case - syncing map center with external location data
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setMapCenter(location.coords);
       hasInitializedLocation.current = true;
-      toast.success("Location detected!");
+
+      // Search for nearby restaurants
+      if (!hasSearchedPlaces.current) {
+        const radiusInMeters = filters.distance * 1000; // Convert km to meters
+        searchNearby(location.coords, radiusInMeters);
+        hasSearchedPlaces.current = true;
+        toast.success("Finding restaurants near you...");
+      }
     }
-  }, [location]);
+  }, [location, filters.distance, searchNearby]);
 
   // Show error toast
   useEffect(() => {
@@ -64,9 +78,27 @@ export default function Home() {
     }
   }, [error]);
 
+  // Show places error toast
+  useEffect(() => {
+    if (placesError) {
+      toast.error("Restaurant Search Error", {
+        description: placesError,
+      });
+    }
+  }, [placesError]);
+
+  // Re-search when distance filter changes
+  useEffect(() => {
+    if (location && hasSearchedPlaces.current) {
+      const radiusInMeters = filters.distance * 1000;
+      searchNearby(location.coords, radiusInMeters);
+    }
+  }, [filters.distance, location, searchNearby]);
+
   // Filter and sort restaurants
   const filteredRestaurants = useMemo(() => {
-    let results = MOCK_RESTAURANTS.map((restaurant) => {
+    // Use real restaurant data from Places API
+    let results = placesRestaurants.map((restaurant) => {
       // Calculate distance if user location is available
       if (location) {
         const distance = calculateDistance(
@@ -133,7 +165,7 @@ export default function Home() {
     }
 
     return results;
-  }, [filters, location, searchQuery]);
+  }, [filters, location, searchQuery, placesRestaurants]);
 
   const handleRestaurantClick = (restaurant: Restaurant) => {
     setMapCenter(restaurant.location);
@@ -160,11 +192,14 @@ export default function Home() {
             </div>
             <Button
               variant="secondary"
-              onClick={getCurrentLocation}
-              disabled={loading}
+              onClick={() => {
+                hasSearchedPlaces.current = false;
+                getCurrentLocation();
+              }}
+              disabled={loading || placesLoading}
               className="whitespace-nowrap"
             >
-              {loading ? (
+              {loading || placesLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <MapPin className="mr-2 h-4 w-4" />
