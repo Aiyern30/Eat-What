@@ -97,6 +97,15 @@ export default function Home() {
     }
   }, [filters.distance, filters.resultLimit, location, searchNearby]);
 
+  // Extract available areas from fetched restaurants
+  const availableAreas = useMemo(() => {
+    const areas = placesRestaurants
+      .map((r) => r.area)
+      .filter((area) => area && area !== "Unknown");
+    // Get unique areas and sort alphabetically
+    return Array.from(new Set(areas)).sort();
+  }, [placesRestaurants]);
+
   // Filter and sort restaurants
   const filteredRestaurants = useMemo(() => {
     // Use real restaurant data from Places API
@@ -230,8 +239,7 @@ export default function Home() {
                 filters={filters}
                 onFilterChange={setFilters}
                 onRefresh={handleRefresh}
-                isRefreshing={placesLoading}
-              />
+                isRefreshing={placesLoading}                availableAreas={availableAreas}              />
               <div className="mt-4 rounded-lg bg-muted p-3 text-sm">
                 <p className="font-medium">
                   {filteredRestaurants.length} restaurant
@@ -269,6 +277,7 @@ export default function Home() {
                     isMobile
                     onRefresh={handleRefresh}
                     isRefreshing={placesLoading}
+                    availableAreas={availableAreas}
                   />
                 </div>
               </div>

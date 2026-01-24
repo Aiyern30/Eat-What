@@ -39,6 +39,7 @@ interface FilterPanelProps {
   isMobile?: boolean;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  availableAreas?: string[];
 }
 
 export function FilterPanel({
@@ -47,6 +48,7 @@ export function FilterPanel({
   isMobile = false,
   onRefresh,
   isRefreshing = false,
+  availableAreas = [],
 }: FilterPanelProps) {
   const updateFilter = <K extends keyof FilterState>(
     key: K,
@@ -80,13 +82,13 @@ export function FilterPanel({
     <div className="space-y-6">
       {/* Area Filter */}
       <div className="space-y-2">
-        <Label>Areas</Label>
+        <Label>Location</Label>
         <MultiSelect
-          options={AREAS}
+          options={availableAreas.length > 0 ? availableAreas : AREAS}
           selected={filters.areas}
           onChange={(areas) => updateFilter("areas", areas)}
-          placeholder="Select areas..."
-          emptyText="No areas found."
+          placeholder="All locations"
+          emptyText="No locations found."
         />
       </div>
 
@@ -133,7 +135,7 @@ export function FilterPanel({
           onChange={(cuisines) =>
             updateFilter("cuisines", cuisines as CuisineType[])
           }
-          placeholder="Select cuisines..."
+          placeholder="All cuisines"
           emptyText="No cuisines found."
         />
       </div>
@@ -147,7 +149,7 @@ export function FilterPanel({
           onChange={(dietary) =>
             updateFilter("dietary", dietary as DietaryOption[])
           }
-          placeholder="Select dietary options..."
+          placeholder="All options"
           emptyText="No options found."
         />
       </div>

@@ -213,6 +213,34 @@ const mapPriceLevel = (priceLevel?: number): PriceRange => {
   return "$$";
 };
 
+// Extract city/state from vicinity address
+const extractLocation = (vicinity?: string): string => {
+  if (!vicinity) return "Unknown";
+  
+  // Split by comma and get the last meaningful part (usually city or state)
+  const parts = vicinity.split(",").map(p => p.trim()).filter(p => p);
+  
+  // Common Malaysian states and cities
+  const locations = [
+    "Selangor", "Kuala Lumpur", "KL", "Puchong", "Petaling Jaya", "PJ",
+    "Subang Jaya", "Shah Alam", "Klang", "Kajang", "Cheras", "Ampang",
+    "Mont Kiara", "Bangsar", "KLCC", "Bukit Bintang", "Damansara",
+    "Putrajaya", "Cyberjaya", "Seri Kembangan", "Bangi"
+  ];
+  
+  // Find the first part that matches a known location
+  for (const part of parts) {
+    for (const location of locations) {
+      if (part.toLowerCase().includes(location.toLowerCase())) {
+        return location;
+      }
+    }
+  }
+  
+  // If no match, return the last part (usually city/area)
+  return parts[parts.length - 1] || "Unknown";
+};
+
 export function usePlaces(): UsePlacesResult {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
@@ -300,7 +328,7 @@ export function usePlaces(): UsePlacesResult {
                         lng: place.geometry?.location?.lng() || 0,
                       },
                       address: place.vicinity || "",
-                      area: place.vicinity?.split(",")[0] || "Unknown",
+                      area: extractLocation(place.vicinity),
                       phoneNumber: "",
                       photoUrl:
                         place.photos?.[0]?.getUrl({ maxWidth: 400 }) ||

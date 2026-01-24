@@ -16,7 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "./ui/badge";
 
 interface MultiSelectProps {
   options: string[];
@@ -40,7 +40,6 @@ export function MultiSelect({
       onChange([...selected, value]);
     }
   };
-
   const handleRemove = (value: string) => {
     onChange(selected.filter((item) => item !== value));
   };
@@ -51,22 +50,14 @@ export function MultiSelect({
         <Button
           variant="outline"
           role="combobox"
-          className="w-full justify-between"
+          className="w-full justify-between min-h-10 h-auto"
         >
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1 flex-1">
             {selected.length === 0 ? (
               <span className="text-muted-foreground">{placeholder}</span>
             ) : (
               selected.map((item) => (
-                <Badge
-                  key={item}
-                  variant="secondary"
-                  className="mr-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemove(item);
-                  }}
-                >
+                <Badge key={item} variant="secondary" className="mr-1">
                   {item}
                   <button
                     className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -94,7 +85,7 @@ export function MultiSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
+      <PopoverContent className="w-full p-0" align="start">
         <Command>
           <CommandInput placeholder="Search..." />
           <CommandList>
