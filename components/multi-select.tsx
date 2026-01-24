@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { Check, ChevronsUpDown } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -10,20 +10,20 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 
 interface MultiSelectProps {
-  options: string[]
-  selected: string[]
-  onChange: (selected: string[]) => void
-  placeholder?: string
-  emptyText?: string
+  options: string[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  placeholder?: string;
+  emptyText?: string;
 }
 
 export function MultiSelect({
@@ -35,15 +35,15 @@ export function MultiSelect({
 }: MultiSelectProps) {
   const handleSelect = (value: string) => {
     if (selected.includes(value)) {
-      onChange(selected.filter((item) => item !== value))
+      onChange(selected.filter((item) => item !== value));
     } else {
-      onChange([...selected, value])
+      onChange([...selected, value]);
     }
-  }
+  };
 
   const handleRemove = (value: string) => {
-    onChange(selected.filter((item) => item !== value))
-  }
+    onChange(selected.filter((item) => item !== value));
+  };
 
   return (
     <Popover>
@@ -63,8 +63,8 @@ export function MultiSelect({
                   variant="secondary"
                   className="mr-1"
                   onClick={(e) => {
-                    e.stopPropagation()
-                    handleRemove(item)
+                    e.stopPropagation();
+                    handleRemove(item);
                   }}
                 >
                   {item}
@@ -72,17 +72,17 @@ export function MultiSelect({
                     className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        handleRemove(item)
+                        handleRemove(item);
                       }
                     }}
                     onMouseDown={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
+                      e.preventDefault();
+                      e.stopPropagation();
                     }}
                     onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      handleRemove(item)
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleRemove(item);
                     }}
                   >
                     ✕
@@ -101,14 +101,11 @@ export function MultiSelect({
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
-                <CommandItem
-                  key={option}
-                  onSelect={() => handleSelect(option)}
-                >
+                <CommandItem key={option} onSelect={() => handleSelect(option)}>
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      selected.includes(option) ? "opacity-100" : "opacity-0"
+                      selected.includes(option) ? "opacity-100" : "opacity-0",
                     )}
                   />
                   {option}
@@ -119,5 +116,5 @@ export function MultiSelect({
         </Command>
       </PopoverContent>
     </Popover>
-  )
+  );
 }
