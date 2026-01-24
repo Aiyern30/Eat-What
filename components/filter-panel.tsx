@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { X, SlidersHorizontal } from "lucide-react";
+import { X, SlidersHorizontal, RefreshCw, Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -37,12 +37,16 @@ interface FilterPanelProps {
   filters: FilterState;
   onFilterChange: (filters: FilterState) => void;
   isMobile?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export function FilterPanel({
   filters,
   onFilterChange,
   isMobile = false,
+  onRefresh,
+  isRefreshing = false,
 }: FilterPanelProps) {
   const updateFilter = <K extends keyof FilterState>(
     key: K,
@@ -204,6 +208,28 @@ export function FilterPanel({
           onCheckedChange={(checked) => updateFilter("openNow", checked)}
         />
       </div>
+
+      {/* Refresh Button */}
+      {onRefresh && (
+        <Button
+          variant="default"
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className="w-full bg-orange-500 hover:bg-orange-600"
+        >
+          {isRefreshing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Refreshing...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh List
+            </>
+          )}
+        </Button>
+      )}
 
       {/* Reset Button */}
       {activeFilterCount > 0 && (

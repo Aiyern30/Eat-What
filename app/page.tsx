@@ -10,7 +10,7 @@ import { RestaurantList } from "@/components/restaurant-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Map, List, MapPin, Search, Loader2, RefreshCw } from "lucide-react";
+import { Map, List, MapPin, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { GoogleMap } from "@/components/google-map";
@@ -197,37 +197,22 @@ export default function Home() {
                 className="bg-white pl-10"
               />
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={handleRefresh}
-                disabled={placesLoading || !location}
-                className="whitespace-nowrap"
-                title="Refresh restaurant list"
-              >
-                {placesLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  hasSearchedPlaces.current = false;
-                  getCurrentLocation();
-                }}
-                disabled={loading || placesLoading}
-                className="whitespace-nowrap"
-              >
-                {loading || placesLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <MapPin className="mr-2 h-4 w-4" />
-                )}
-                {location ? "Update Location" : "Get My Location"}
-              </Button>
-            </div>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                hasSearchedPlaces.current = false;
+                getCurrentLocation();
+              }}
+              disabled={loading || placesLoading}
+              className="whitespace-nowrap"
+            >
+              {loading || placesLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <MapPin className="mr-2 h-4 w-4" />
+              )}
+              {location ? "Update Location" : "Get My Location"}
+            </Button>
           </div>
           {location?.address && (
             <p className="mt-2 text-sm text-white/90">📍 {location.address}</p>
@@ -241,7 +226,12 @@ export default function Home() {
         {!isMobile && (
           <aside className="w-80 border-r bg-card">
             <div className="h-full overflow-y-auto p-4">
-              <FilterPanel filters={filters} onFilterChange={setFilters} />
+              <FilterPanel
+                filters={filters}
+                onFilterChange={setFilters}
+                onRefresh={handleRefresh}
+                isRefreshing={placesLoading}
+              />
               <div className="mt-4 rounded-lg bg-muted p-3 text-sm">
                 <p className="font-medium">
                   {filteredRestaurants.length} restaurant
@@ -277,6 +267,8 @@ export default function Home() {
                     filters={filters}
                     onFilterChange={setFilters}
                     isMobile
+                    onRefresh={handleRefresh}
+                    isRefreshing={placesLoading}
                   />
                 </div>
               </div>
