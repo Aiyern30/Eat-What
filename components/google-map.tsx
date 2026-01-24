@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
 import { Restaurant, Location } from "@/types/restaurant";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -28,42 +27,19 @@ export function GoogleMap({
 
   // Initialize map
   useEffect(() => {
-    const initMap = async () => {
-      if (!mapRef.current) return;
+    if (!mapRef.current || !window.google) return;
 
-      try {
-        const loader = new Loader({
-          apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-          version: "weekly",
-        })
+    const mapInstance = new google.maps.Map(mapRef.current, {
+      center,
+      zoom,
+      mapTypeControl: false,
+      fullscreenControl: true,
+      streetViewControl: false,
+    });
 
-        await loader.load()
-
-        const mapInstance = new google.maps.Map(mapRef.current, {
-          center,
-          zoom,
-          styles: [
-            {
-              featureType: "poi",
-              elementType: "labels",
-              stylers: [{ visibility: "off" }],
-            },
-          ],
-          mapTypeControl: false,
-          fullscreenControl: true,
-          streetViewControl: false,
-        });
-
-        setMap(mapInstance);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error loading map:", error);
-        setLoading(false);
-      }
-    };
-
-    initMap();
-  }, [center.lat, center.lng, zoom]);
+    setMap(mapInstance);
+    setLoading(false);
+  }, [center, center.lat, center.lng, zoom]);
 
   // Update center when it changes
   useEffect(() => {

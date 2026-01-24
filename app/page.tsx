@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo } from "react"
-import { Restaurant, FilterState, Location } from "@/types/restaurant"
-import { MOCK_RESTAURANTS } from "@/data/restaurants"
-import { useGeolocation } from "@/hooks/use-geolocation"
-import { calculateDistance, isRestaurantOpen } from "@/lib/utils"
-import { FilterPanel } from "@/components/filter-panel"
-import { GoogleMap } from "@/components/google-map"
-import { RestaurantList } from "@/components/restaurant-list"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Map, List, MapPin, Search, Loader2 } from "lucide-react"
-import { toast } from "sonner"
-import { useMobile } from "@/hooks/use-mobile"
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Restaurant, FilterState, Location } from "@/types/restaurant";
+import { MOCK_RESTAURANTS } from "@/data/restaurants";
+import { useGeolocation } from "@/hooks/use-geolocation";
+import { calculateDistance, isRestaurantOpen } from "@/lib/utils";
+import { FilterPanel } from "@/components/filter-panel";
+import { GoogleMap } from "@/components/google-map";
+import { RestaurantList } from "@/components/restaurant-list";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Map, List, MapPin, Search, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const DEFAULT_CENTER: Location = {
-  lat: 3.1390, // Kuala Lumpur center
+  lat: 3.139, // Kuala Lumpur center
   lng: 101.6869,
-}
+};
 
 export default function Home() {
   const [filters, setFilters] = useState<FilterState>({
@@ -29,37 +29,40 @@ export default function Home() {
     priceRange: [],
     minRating: 0,
     openNow: false,
-  })
+  });
 
-  const [searchQuery, setSearchQuery] = useState("")
-  const [mapCenter, setMapCenter] = useState<Location>(DEFAULT_CENTER)
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
-  const [viewMode, setViewMode] = useState<"map" | "list">("map")
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mapCenter, setMapCenter] = useState<Location>(DEFAULT_CENTER);
+  const [viewMode, setViewMode] = useState<"map" | "list">("map");
+  const hasInitializedLocation = useRef(false);
 
-  const { location, error, loading, getCurrentLocation } = useGeolocation()
-  const isMobile = useMobile()
+  const { location, error, loading, getCurrentLocation } = useGeolocation();
+  const isMobile = useIsMobile();
 
   // Get user location on mount
   useEffect(() => {
-    getCurrentLocation()
-  }, [])
+    getCurrentLocation();
+  }, [getCurrentLocation]);
 
-  // Update map center when user location is obtained
+  // Update map center when user location is first obtained
   useEffect(() => {
-    if (location) {
-      setMapCenter(location.coords)
-      toast.success("Location detected!")
+    if (location && !hasInitializedLocation.current) {
+      // This is a valid use case - syncing map center with external location data
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMapCenter(location.coords);
+      hasInitializedLocation.current = true;
+      toast.success("Location detected!");
     }
-  }, [location])
+  }, [location]);
 
   // Show error toast
   useEffect(() => {
     if (error) {
       toast.error("Location Error", {
         description: error,
-      })
+      });
     }
-  }, [error])
+  }, [error]);
 
   // Filter and sort restaurants
   const filteredRestaurants = useMemo(() => {
@@ -70,73 +73,74 @@ export default function Home() {
           location.coords.lat,
           location.coords.lng,
           restaurant.location.lat,
-          restaurant.location.lng
-        )
-        return { ...restaurant, distance }
+          restaurant.location.lng,
+        );
+        return { ...restaurant, distance };
       }
-      return restaurant
-    })
+      return restaurant;
+    });
 
     // Apply filters
     if (filters.areas.length > 0) {
-      results = results.filter((r) => filters.areas.includes(r.area))
+      results = results.filter((r) => filters.areas.includes(r.area));
     }
 
     if (location && filters.distance) {
-      results = results.filter((r) => r.distance! <= filters.distance)
+      results = results.filter((r) => r.distance! <= filters.distance);
     }
 
     if (filters.cuisines.length > 0) {
       results = results.filter((r) =>
-        r.cuisine.some((c) => filters.cuisines.includes(c))
-      )
+        r.cuisine.some((c) => filters.cuisines.includes(c)),
+      );
     }
 
     if (filters.dietary.length > 0) {
       results = results.filter((r) =>
-        filters.dietary.some((d) => r.dietaryOptions.includes(d))
-      )
+        filters.dietary.some((d) => r.dietaryOptions.includes(d)),
+      );
     }
 
     if (filters.priceRange.length > 0) {
-      results = results.filter((r) => filters.priceRange.includes(r.priceRange))
+      results = results.filter((r) =>
+        filters.priceRange.includes(r.priceRange),
+      );
     }
 
     if (filters.minRating > 0) {
-      results = results.filter((r) => r.rating >= filters.minRating)
+      results = results.filter((r) => r.rating >= filters.minRating);
     }
 
     if (filters.openNow) {
-      results = results.filter((r) => isRestaurantOpen(r.openingHours))
+      results = results.filter((r) => isRestaurantOpen(r.openingHours));
     }
 
     // Apply search query
     if (searchQuery) {
-      const query = searchQuery.toLowerCase()
+      const query = searchQuery.toLowerCase();
       results = results.filter(
         (r) =>
           r.name.toLowerCase().includes(query) ||
           r.cuisine.some((c) => c.toLowerCase().includes(query)) ||
           r.area.toLowerCase().includes(query) ||
-          r.address.toLowerCase().includes(query)
-      )
+          r.address.toLowerCase().includes(query),
+      );
     }
 
     // Sort by distance if available
     if (location) {
-      results.sort((a, b) => (a.distance || 0) - (b.distance || 0))
+      results.sort((a, b) => (a.distance || 0) - (b.distance || 0));
     }
 
-    return results
-  }, [filters, location, searchQuery])
+    return results;
+  }, [filters, location, searchQuery]);
 
   const handleRestaurantClick = (restaurant: Restaurant) => {
-    setSelectedRestaurant(restaurant)
-    setMapCenter(restaurant.location)
+    setMapCenter(restaurant.location);
     if (isMobile) {
-      setViewMode("map")
+      setViewMode("map");
     }
-  }
+  };
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -183,7 +187,8 @@ export default function Home() {
               <FilterPanel filters={filters} onFilterChange={setFilters} />
               <div className="mt-4 rounded-lg bg-muted p-3 text-sm">
                 <p className="font-medium">
-                  {filteredRestaurants.length} restaurant{filteredRestaurants.length !== 1 ? "s" : ""} found
+                  {filteredRestaurants.length} restaurant
+                  {filteredRestaurants.length !== 1 ? "s" : ""} found
                 </p>
               </div>
             </div>
@@ -194,7 +199,11 @@ export default function Home() {
         <main className="flex-1 overflow-hidden">
           {isMobile ? (
             // Mobile: Tabs for Map/List view
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "map" | "list")} className="flex h-full flex-col">
+            <Tabs
+              value={viewMode}
+              onValueChange={(v) => setViewMode(v as "map" | "list")}
+              className="flex h-full flex-col"
+            >
               <div className="border-b bg-card px-4 py-2">
                 <div className="flex items-center justify-between">
                   <TabsList>
@@ -207,7 +216,11 @@ export default function Home() {
                       List ({filteredRestaurants.length})
                     </TabsTrigger>
                   </TabsList>
-                  <FilterPanel filters={filters} onFilterChange={setFilters} isMobile />
+                  <FilterPanel
+                    filters={filters}
+                    onFilterChange={setFilters}
+                    isMobile
+                  />
                 </div>
               </div>
               <TabsContent value="map" className="m-0 flex-1">
@@ -239,7 +252,8 @@ export default function Home() {
               <div className="h-full w-96 border-l bg-card">
                 <div className="border-b p-4">
                   <h2 className="font-semibold">
-                    {filteredRestaurants.length} Restaurant{filteredRestaurants.length !== 1 ? "s" : ""}
+                    {filteredRestaurants.length} Restaurant
+                    {filteredRestaurants.length !== 1 ? "s" : ""}
                   </h2>
                 </div>
                 <RestaurantList
@@ -252,5 +266,5 @@ export default function Home() {
         </main>
       </div>
     </div>
-  )
+  );
 }
