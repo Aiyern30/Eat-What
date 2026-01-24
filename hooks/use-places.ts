@@ -84,40 +84,72 @@ export function usePlaces(): UsePlacesResult {
         type: "restaurant",
       };
 
-      service.nearbySearch(request, (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          const mappedRestaurants: Restaurant[] = results.slice(0, limit).map((place, index) => {
-            const cuisine = mapPlaceTypeToCuisine(place.types || []);
-            const priceLevel = place.price_level || 2;
-            
-            return {
-              id: place.place_id || `place-${index}`,
-              name: place.name || "Unknown Restaurant",
-              cuisine,
-              rating: place.rating || 0,
-              priceRange: mapPriceLevel(priceLevel),
-              priceLevel: priceLevel,
-              location: {
-                lat: place.geometry?.location?.lat() || 0,
-                lng: place.geometry?.location?.lng() || 0,
-              },
-              address: place.vicinity || "",
-              area: place.vicinity?.split(",")[0] || "Unknown",
-              phoneNumber: "",
-              photoUrl: place.photos?.[0]?.getUrl({ maxWidth: 400 }) || "/placeholder-restaurant.jpg",
-              dietaryOptions: [] as DietaryOption[],
-              openingHours: [],
-              isOpen: place.opening_hours?.isOpen?.() ?? undefined,
-            };
-          });
+      let allResults: google.maps.places.PlaceResult[] = [];
+      const seenPlaceIds = new Set<string>();
 
-          setRestaurants(mappedRestaurants);
-          setLoading(false);
-        } else {
-          setError(`Failed to fetch restaurants: ${status}`);
-          setLoading(false);
-        }
-      });
+      const fetchPage = (pageTokenParam?: string) => {
+        const pageRequest = pageTokenParam 
+          ? { ...request, pageToken: pageTokenParam }
+          : request;
+
+        service.nearbySearch(pageRequest, (results, status, pagination) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+            // Filter out duplicates
+            const newResults = results.filter(place => {
+              const placeId = place.place_id;
+              if (!placeId || seenPlaceIds.has(placeId)) {
+                return false;
+              }
+              seenPlaceIds.add(placeId);
+              return true;
+            });
+            
+            allResults = [...allResults, ...newResults];
+
+            // Check if we need more results and pagination is available
+            if (allResults.length < limit && pagination?.hasNextPage) {
+              // Wait 2 seconds before requesting next page (Google requirement)
+              setTimeout(() => {
+                pagination.nextPage();
+              }, 2000);
+            } else {
+              // Map and set results
+              const mappedRestaurants: Restaurant[] = allResults.slice(0, limit).map((place, index) => {
+                const cuisine = mapPlaceTypeToCuisine(place.types || []);
+                const priceLevel = place.price_level || 2;
+                
+                return {
+                  id: place.place_id || `place-${index}`,
+                  name: place.name || "Unknown Restaurant",
+                  cuisine,
+                  rating: place.rating || 0,
+                  priceRange: mapPriceLevel(priceLevel),
+                  priceLevel: priceLevel,
+                  location: {
+                    lat: place.geometry?.location?.lat() || 0,
+                    lng: place.geometry?.location?.lng() || 0,
+                  },
+                  address: place.vicinity || "",
+                  area: place.vicinity?.split(",")[0] || "Unknown",
+                  phoneNumber: "",
+                  photoUrl: place.photos?.[0]?.getUrl({ maxWidth: 400 }) || "/placeholder-restaurant.jpg",
+                  dietaryOptions: [] as DietaryOption[],
+                  openingHours: [],
+                  isOpen: place.opening_hours?.isOpen?.() ?? undefined,
+                };
+              });
+
+              setRestaurants(mappedRestaurants);
+              setLoading(false);
+            }
+          } else {
+            setError(`Failed to fetch restaurants: ${status}`);
+            setLoading(false);
+          }
+        });
+      };
+
+      fetchPage();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error occurred");
       setLoading(false);
@@ -126,7 +158,15 @@ export function usePlaces(): UsePlacesResult {
 
   const refresh = useCallback(async () => {
     if (lastSearchParams) {
-      await searchNearby(lastSearchParams.location, lastSearchParams.radius, lastSearchParams.limit);
+      // Create a slightly offset location to get different results
+      const offsetLat = lastSearchParams.location.lat + (Math.random() - 0.5) * 0.001;
+      const offsetLng = lastSearchParams.location.lng + (Math.random() - 0.5) * 0.001;
+      
+      await searchNearby(
+        { lat: offsetLat, lng: offsetLng },
+        lastSearchParams.radius,
+        lastSearchParams.limit
+      );
     }
   }, [lastSearchParams, searchNearby]);
 
