@@ -59,7 +59,8 @@ export default function Home() {
   const handleGlobalSearch = () => {
     if (globalSearchQuery.trim()) {
       setIsExploreMode(true); // Enable Explore Mode
-      searchByQuery(globalSearchQuery);
+      // Pass the current limit from filters to searchByQuery
+      searchByQuery(globalSearchQuery, filters.resultLimit);
       toast.success(`Searching for area: "${globalSearchQuery}"...`);
       // When exploring a new area, we might want to reset local filters to see everything there
       // setFilterQuery("");
@@ -268,7 +269,7 @@ export default function Home() {
               </div>
               <p className="text-[10px] text-white/80 mt-1 pl-1">
                 * Explore Mode: Type a location and press Enter to search that
-                area.
+                area. Click "Clear & Near Me" to reset.
               </p>
             </div>
 
@@ -278,7 +279,22 @@ export default function Home() {
                 hasSearchedPlaces.current = false;
                 setGlobalSearchQuery(""); // Clear global search when getting my location
                 setIsExploreMode(false); // Reset to Nearby Mode
+
+                // Immediately disable loading state to allow retry if needed,
+                // but more importantly, if we have a location, force a fresh search!
+                // getCurrentLocation will update 'location', but if it's the same, useEffect might not fire.
+                // So we assume if we are clicking this, we want to REFRESH nearby.
                 getCurrentLocation();
+
+                if (location) {
+                  const radiusInMeters = filters.distance * 1000;
+                  searchNearby(
+                    location.coords,
+                    radiusInMeters,
+                    filters.resultLimit,
+                  );
+                  toast.success("Finding restaurants near you...");
+                }
               }}
               disabled={loading || placesLoading}
               className="whitespace-nowrap h-10 shadow-sm"
@@ -288,7 +304,7 @@ export default function Home() {
               ) : (
                 <MapPin className="mr-2 h-4 w-4" />
               )}
-              {location ? "Update My Location" : "Find Near Me"}
+              {isExploreMode ? "Clear & Near Me" : "Update GPS"}
             </Button>
           </div>
           {location?.address && !globalSearchQuery && (

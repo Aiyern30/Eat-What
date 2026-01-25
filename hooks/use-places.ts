@@ -18,7 +18,7 @@ interface UsePlacesResult {
     radius?: number,
     limit?: number,
   ) => Promise<void>;
-  searchByQuery: (query: string) => Promise<void>;
+  searchByQuery: (query: string, limit?: number) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -386,77 +386,150 @@ export function usePlaces(): UsePlacesResult {
     [],
   );
 
-  const searchByQuery = useCallback(async (query: string) => {
-    setLoading(true);
-    setError(null);
+  const searchByQuery = useCallback(
+    async (query: string, limit: number = 50) => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      if (!window.google) {
-        throw new Error("Google Maps not loaded");
-      }
-
-      const service = new google.maps.places.PlacesService(
-        document.createElement("div"),
-      );
-
-      const request: google.maps.places.TextSearchRequest = {
-        query: query,
-        type: "restaurant",
-      };
-
-      service.textSearch(request, (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          const mappedRestaurants: Restaurant[] = results.map(
-            (place, index) => {
-              const restaurantName = place.name || "Unknown Restaurant";
-              const cuisine = mapPlaceTypeToCuisine(
-                place.types || [],
-                restaurantName,
-              );
-              const priceLevel = place.price_level || 2;
-
-              return {
-                id: place.place_id || `place-${index}`,
-                name: restaurantName,
-                cuisine,
-                rating: place.rating || 0,
-                priceRange: mapPriceLevel(priceLevel),
-                priceLevel: priceLevel,
-                location: {
-                  lat: place.geometry?.location?.lat() || 0,
-                  lng: place.geometry?.location?.lng() || 0,
-                },
-                address: place.vicinity || place.formatted_address || "",
-                area: extractLocation(
-                  place.formatted_address || place.vicinity,
-                ),
-                phoneNumber: "",
-                photoUrl:
-                  place.photos?.[0]?.getUrl({ maxWidth: 400 }) ||
-                  "/placeholder-restaurant.jpg",
-                dietaryOptions: [] as DietaryOption[],
-                openingHours: [],
-                isOpen: place.opening_hours?.isOpen?.() ?? undefined,
-                userRatingsTotal: place.user_ratings_total,
-                dineIn: (place as any).dine_in,
-                takeout: (place as any).takeout,
-                delivery: (place as any).delivery,
-              };
-            },
-          );
-
-          setRestaurants(mappedRestaurants);
-          setLoading(false);
-        } else {
-          setError(`Failed to search restaurants: ${status}`);
-          setLoading(false);
+      try {
+        if (!window.google) {
+          throw new Error("Google Maps not loaded");
         }
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error occurred");
-      setLoading(false);
-    }
-  }, []);
+
+        const service = new google.maps.places.PlacesService(
+          document.createElement("div"),
+        );
+
+        const request: google.maps.places.TextSearchRequest = {
+          query: query,
+          type: "restaurant",
+        };
+
+        let allResults: google.maps.places.PlaceResult[] = [];
+
+        const fetchPage = (pageTokenParam?: string) => {
+          // textSearch doesn't accept pageToken in the request object directly quite the same as nearbySearch in strict types sometimes,
+          // but the JS API handles it via the pagination object causing a new request.
+          // HOWEVER, for textSearch, the pagination mechanics are slightly different or standard.
+          // Actually, for textSearch, we use the pagination argument in the callback to fetch next page.
+
+          service.textSearch(request, (results, status, pagination) => {
+            if (
+              status === google.maps.places.PlacesServiceStatus.OK &&
+              results
+            ) {
+              allResults = [...allResults, ...results];
+
+              if (allResults.length < limit && pagination?.hasNextPage) {
+                // Wait 2 seconds before requesting next page
+                setTimeout(() => {
+                  pagination.nextPage();
+                }, 2000);
+              } else {
+                const mappedRestaurants: Restaurant[] = allResults
+                  .slice(0, limit)
+                  .map((place, index) => {
+                    const restaurantName = place.name || "Unknown Restaurant";
+                    const cuisine = mapPlaceTypeToCuisine(
+                      place.types || [],
+                      restaurantName,
+                    );
+                    const priceLevel = place.price_level || 2;
+
+                    return {
+                      id: place.place_id || `place-${index}`,
+                      name: restaurantName,
+                      cuisine,
+                      rating: place.rating || 0,
+                      priceRange: mapPriceLevel(priceLevel),
+                      priceLevel: priceLevel,
+                      location: {
+                        lat: place.geometry?.location?.lat() || 0,
+                        lng: place.geometry?.location?.lng() || 0,
+                      },
+                      address: place.vicinity || place.formatted_address || "",
+                      area: extractLocation(
+                        place.formatted_address || place.vicinity,
+                      ),
+                      phoneNumber: "",
+                      photoUrl:
+                        place.photos?.[0]?.getUrl({ maxWidth: 400 }) ||
+                        "/placeholder-restaurant.jpg",
+                      dietaryOptions: [] as DietaryOption[],
+                      openingHours: [],
+                      isOpen: place.opening_hours?.isOpen?.() ?? undefined,
+                      userRatingsTotal: place.user_ratings_total,
+                      dineIn: (place as any).dine_in,
+                      takeout: (place as any).takeout,
+                      delivery: (place as any).delivery,
+                    };
+                  });
+
+                setRestaurants(mappedRestaurants);
+                setLoading(false);
+              }
+            } else {
+              // If we already have some results, don't error out completely, just show what we have
+              if (allResults.length > 0) {
+                // Map what we have
+                const mappedRestaurants = allResults
+                  .slice(0, limit)
+                  .map((place, index) => {
+                    // ... same mapping logic (simplified for brevity here, but in real code must be duplicated or extracted)
+                    // To avoid code duplication in this simplified view, effectively we end up calling setRestaurants with what we have
+                    // For this "Replace" block, I will just copy the mapping logic since I can't easily extract it to a function in this localized edit without changing more code.
+                    const restaurantName = place.name || "Unknown Restaurant";
+                    const cuisine = mapPlaceTypeToCuisine(
+                      place.types || [],
+                      restaurantName,
+                    );
+                    const priceLevel = place.price_level || 2;
+                    return {
+                      id: place.place_id || `place-${index}`,
+                      name: restaurantName,
+                      cuisine,
+                      rating: place.rating || 0,
+                      priceRange: mapPriceLevel(priceLevel),
+                      priceLevel: priceLevel,
+                      location: {
+                        lat: place.geometry?.location?.lat() || 0,
+                        lng: place.geometry?.location?.lng() || 0,
+                      },
+                      address: place.vicinity || place.formatted_address || "",
+                      area: extractLocation(
+                        place.formatted_address || place.vicinity,
+                      ),
+                      phoneNumber: "",
+                      photoUrl:
+                        place.photos?.[0]?.getUrl({ maxWidth: 400 }) ||
+                        "/placeholder-restaurant.jpg",
+                      dietaryOptions: [],
+                      openingHours: [],
+                      isOpen: place.opening_hours?.isOpen?.() ?? undefined,
+                      userRatingsTotal: place.user_ratings_total,
+                      dineIn: (place as any).dine_in,
+                      takeout: (place as any).takeout,
+                      delivery: (place as any).delivery,
+                    };
+                  });
+                setRestaurants(mappedRestaurants);
+                setLoading(false);
+              } else {
+                setError(`Failed to search restaurants: ${status}`);
+                setLoading(false);
+              }
+            }
+          });
+        };
+
+        fetchPage();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error occurred");
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   const refresh = useCallback(async () => {
     if (lastSearchParams) {
