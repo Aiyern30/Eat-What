@@ -13,6 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
   MapPin,
   Phone,
   Globe,
@@ -27,6 +33,7 @@ import {
   Loader2,
   X,
   Copy,
+  ChevronDown,
 } from "lucide-react";
 import Image from "next/image";
 import { formatDistance, isRestaurantOpen } from "@/lib/utils";
@@ -48,6 +55,8 @@ export function RestaurantDetails({
 }: RestaurantDetailsProps) {
   const [details, setDetails] = useState<Restaurant | null>(initialRestaurant);
   const [loading, setLoading] = useState(false);
+  const [hoursOpen, setHoursOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const { getPlaceDetails } = usePlaces();
 
   useEffect(() => {
@@ -104,6 +113,11 @@ export function RestaurantDetails({
       navigator.clipboard.writeText(shareUrl);
       toast.success("Link copied to clipboard");
     }
+  };
+
+  const handleCopyAddress = () => {
+    navigator.clipboard.writeText(details.address);
+    toast.success("Address copied to clipboard");
   };
 
   const formatReviewCount = (count?: number) => {
@@ -179,7 +193,9 @@ export function RestaurantDetails({
                   ({formatReviewCount(details.userRatingsTotal)})
                 </span>
                 <span>•</span>
-                <span>{details.priceRange}</span>
+                <span className="text-green-700 font-medium">
+                  {details.priceRange}
+                </span>
                 <span>•</span>
                 <span>{details.cuisine[0]}</span>
               </div>
@@ -254,7 +270,7 @@ export function RestaurantDetails({
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
-                <div>
+                <div className="flex-1">
                   <p className="text-sm text-gray-900">{details.address}</p>
                   {details.distance !== undefined && (
                     <p className="text-xs text-muted-foreground mt-1">
@@ -262,50 +278,65 @@ export function RestaurantDetails({
                     </p>
                   )}
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={handleCopyAddress}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
               </div>
 
-              <div className="flex items-start gap-3">
-                <Clock className="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={`text-sm font-medium ${isOpenNow ? "text-green-600" : "text-red-600"}`}
-                    >
-                      {isOpenNow ? "Open Now" : "Closed"}
-                    </span>
-                    {details.openingHours &&
-                      details.openingHours.length > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          • Closes{" "}
-                          {details.openingHours.find(
-                            (d) => d.day === new Date().getDay(),
-                          )?.close || "N/A"}
-                        </span>
-                      )}
-                  </div>
-                  {loading ? (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Loading
-                      hours...
-                    </div>
-                  ) : details.weekdayText ? (
-                    <div className="mt-2 space-y-1">
-                      {details.weekdayText.map((text, i) => (
-                        <p
-                          key={i}
-                          className={`text-xs ${text.includes(["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()]) ? "font-bold text-gray-900" : "text-gray-500"}`}
-                        >
-                          {text}
+              <Collapsible open={hoursOpen} onOpenChange={setHoursOpen}>
+                <div className="flex items-start gap-3">
+                  <Clock className="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <CollapsibleTrigger className="flex items-center gap-2 w-full text-left hover:opacity-70">
+                      <span
+                        className={`text-sm font-medium ${isOpenNow ? "text-green-600" : "text-red-600"}`}
+                      >
+                        {isOpenNow ? "Open Now" : "Closed"}
+                      </span>
+                      {details.openingHours &&
+                        details.openingHours.length > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            • Closes{" "}
+                            {details.openingHours.find(
+                              (d) => d.day === new Date().getDay(),
+                            )?.close || "N/A"}
+                          </span>
+                        )}
+                      <ChevronDown
+                        className={`h-4 w-4 ml-auto transition-transform ${hoursOpen ? "rotate-180" : ""}`}
+                      />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {loading ? (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Loading
+                          hours...
+                        </div>
+                      ) : details.weekdayText ? (
+                        <div className="mt-2 space-y-1">
+                          {details.weekdayText.map((text, i) => (
+                            <p
+                              key={i}
+                              className={`text-xs ${text.includes(["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()]) ? "font-bold text-gray-900" : "text-gray-500"}`}
+                            >
+                              {text}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-400 italic mt-2">
+                          Complete hours not available
                         </p>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400 italic">
-                      Complete hours not available
-                    </p>
-                  )}
+                      )}
+                    </CollapsibleContent>
+                  </div>
                 </div>
-              </div>
+              </Collapsible>
             </div>
 
             {/* Tabs: Photos, Reviews, Menu(placeholder) */}
@@ -331,17 +362,30 @@ export function RestaurantDetails({
                   ) : details.photos && details.photos.length > 0 ? (
                     <div className="grid grid-cols-2 gap-2">
                       {details.photos.map((photo, i) => (
-                        <div
-                          key={i}
-                          className={`relative rounded-md overflow-hidden bg-muted ${i === 0 ? "col-span-2 h-48" : "h-32"}`}
-                        >
-                          <Image
-                            src={photo}
-                            alt={`${details.name} photo ${i + 1}`}
-                            fill
-                            className="object-cover hover:scale-105 transition-transform"
-                          />
-                        </div>
+                        <Dialog key={i}>
+                          <DialogTrigger asChild>
+                            <div
+                              className={`relative rounded-md overflow-hidden bg-muted cursor-pointer ${i === 0 ? "col-span-2 h-48" : "h-32"}`}
+                            >
+                              <Image
+                                src={photo}
+                                alt={`${details.name} photo ${i + 1}`}
+                                fill
+                                className="object-cover hover:scale-105 transition-transform"
+                              />
+                            </div>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl w-full p-0 bg-black/95">
+                            <div className="relative w-full h-[80vh]">
+                              <Image
+                                src={photo}
+                                alt={`${details.name} photo ${i + 1}`}
+                                fill
+                                className="object-contain"
+                              />
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       ))}
                     </div>
                   ) : (
