@@ -12,6 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, Star, Navigation } from "lucide-react";
 import { formatDistance, isRestaurantOpen } from "@/lib/utils";
 import Image from "next/image";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface RestaurantCardProps {
   restaurant: Restaurant;
@@ -32,9 +37,24 @@ export function RestaurantCard({ restaurant, onClick }: RestaurantCardProps) {
     }
   };
 
+  const getPriceDescription = (price: string) => {
+    switch (price) {
+      case "$":
+        return "Inexpensive (< RM20)";
+      case "$$":
+        return "Moderate (RM20 - RM60)";
+      case "$$$":
+        return "Expensive (RM60 - RM150)";
+      case "$$$$":
+        return "Very Expensive (> RM150)";
+      default:
+        return "Price range unknown";
+    }
+  };
+
   return (
     <Card
-      className="group flex cursor-pointer flex-col transition-all hover:shadow-lg"
+      className="group flex cursor-pointer flex-col transition-all hover:shadow-lg py-0"
       onClick={onClick}
     >
       <CardHeader className="p-0">
@@ -73,7 +93,9 @@ export function RestaurantCard({ restaurant, onClick }: RestaurantCardProps) {
       </CardHeader>
       <CardContent className="flex-1 space-y-3 p-4">
         <div>
-          <h3 className="text-lg font-semibold leading-tight">{restaurant.name}</h3>
+          <h3 className="text-lg font-semibold leading-tight">
+            {restaurant.name}
+          </h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {restaurant.cuisine.join(", ")}
           </p>
@@ -83,9 +105,30 @@ export function RestaurantCard({ restaurant, onClick }: RestaurantCardProps) {
             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
             <span className="font-medium">{restaurant.rating}</span>
           </div>
-          <span className="font-semibold text-orange-500">
-            {restaurant.priceRange}
-          </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className="flex cursor-help items-center gap-0.5"
+                aria-label={`Price range: ${restaurant.priceRange} - ${getPriceDescription(restaurant.priceRange)}`}
+              >
+                {[1, 2, 3, 4].map((level) => (
+                  <span
+                    key={level}
+                    className={`text-sm ${
+                      level <= restaurant.priceRange.length
+                        ? "font-semibold text-orange-500"
+                        : "text-muted-foreground/30"
+                    }`}
+                  >
+                    $
+                  </span>
+                ))}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{getPriceDescription(restaurant.priceRange)}</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <div className="flex items-start gap-2 text-sm text-muted-foreground">
           <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
