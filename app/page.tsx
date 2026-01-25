@@ -38,6 +38,9 @@ export default function Home() {
   // Local Filter Query - Used for filtering CURRENT results ("Filter")
   const [filterQuery, setFilterQuery] = useState("");
 
+  // Track if we are in "Explore Mode" (Global Search) vs "Nearby Mode"
+  const [isExploreMode, setIsExploreMode] = useState(false);
+
   const [mapCenter, setMapCenter] = useState<Location>(DEFAULT_CENTER);
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const hasInitializedLocation = useRef(false);
@@ -55,6 +58,7 @@ export default function Home() {
 
   const handleGlobalSearch = () => {
     if (globalSearchQuery.trim()) {
+      setIsExploreMode(true); // Enable Explore Mode
       searchByQuery(globalSearchQuery);
       toast.success(`Searching for area: "${globalSearchQuery}"...`);
       // When exploring a new area, we might want to reset local filters to see everything there
@@ -111,13 +115,19 @@ export default function Home() {
     }
   }, [placesError]);
 
-  // Re-search when distance filter changes
+  // Re-search when distance filter changes (ONLY in Nearby Mode)
   useEffect(() => {
-    if (location && hasSearchedPlaces.current) {
+    if (!isExploreMode && location && hasSearchedPlaces.current) {
       const radiusInMeters = filters.distance * 1000;
       searchNearby(location.coords, radiusInMeters, filters.resultLimit);
     }
-  }, [filters.distance, filters.resultLimit, location, searchNearby]);
+  }, [
+    filters.distance,
+    filters.resultLimit,
+    location,
+    searchNearby,
+    isExploreMode,
+  ]);
 
   // Extract available areas from fetched restaurants
   const availableAreas = useMemo(() => {
@@ -159,7 +169,8 @@ export default function Home() {
       results = results.filter((r) => filters.areas.includes(r.area));
     }
 
-    if (location && filters.distance) {
+    // IMPORTANT: Only apply distance filtering in Nearby Mode
+    if (!isExploreMode && location && filters.distance) {
       results = results.filter((r) => r.distance! <= filters.distance);
     }
 
@@ -207,7 +218,7 @@ export default function Home() {
     }
 
     return results;
-  }, [filters, location, filterQuery, placesRestaurants]);
+  }, [filters, location, filterQuery, placesRestaurants, isExploreMode]);
 
   const handleRestaurantClick = (restaurant: Restaurant) => {
     setMapCenter(restaurant.location);
@@ -266,6 +277,7 @@ export default function Home() {
               onClick={() => {
                 hasSearchedPlaces.current = false;
                 setGlobalSearchQuery(""); // Clear global search when getting my location
+                setIsExploreMode(false); // Reset to Nearby Mode
                 getCurrentLocation();
               }}
               disabled={loading || placesLoading}
