@@ -271,12 +271,20 @@ export function usePlaces(): UsePlacesResult {
     radius: number;
     limit: number;
   } | null>(null);
+  const [lastSearchType, setLastSearchType] = useState<"nearby" | "text">(
+    "nearby",
+  );
+  const [lastTextQuery, setLastTextQuery] = useState<{
+    query: string;
+    limit: number;
+  } | null>(null);
 
   const searchNearby = useCallback(
     async (location: Location, radius: number = 5000, limit: number = 50) => {
       setLoading(true);
       setError(null);
       setLastSearchParams({ location, radius, limit });
+      setLastSearchType("nearby");
 
       try {
         // Load Google Maps library
@@ -390,6 +398,8 @@ export function usePlaces(): UsePlacesResult {
     async (query: string, limit: number = 50) => {
       setLoading(true);
       setError(null);
+      setLastSearchType("text");
+      setLastTextQuery({ query, limit });
 
       try {
         if (!window.google) {
@@ -532,7 +542,7 @@ export function usePlaces(): UsePlacesResult {
   );
 
   const refresh = useCallback(async () => {
-    if (lastSearchParams) {
+    if (lastSearchType === "nearby" && lastSearchParams) {
       // Create a slightly offset location to get different results
       const offsetLat =
         lastSearchParams.location.lat + (Math.random() - 0.5) * 0.001;
@@ -544,8 +554,25 @@ export function usePlaces(): UsePlacesResult {
         lastSearchParams.radius,
         lastSearchParams.limit,
       );
+    } else if (lastSearchType === "text" && lastTextQuery) {
+      // For text search, we can't easily "randomize" results like nearby search offset.
+      // But re-running the query ensures we are at least refreshing the list in the current mode
+      // and not jumping back to "nearby".
+      // If we strictly wanted "another 50", we'd need to paginate beyond the first 50 we already fetched.
+      // Google Text Search is consistent, so re-fetching the same query gives the same results.
+      // However, this FIXES the bug of "refresh reverts to nearby".
+
+      // Potential improvement: Modify query slightly or use pagination state if we were tracking it?
+      // For now, re-executing searchByQuery keeps the user in the correct state.
+      await searchByQuery(lastTextQuery.query, lastTextQuery.limit);
     }
-  }, [lastSearchParams, searchNearby]);
+  }, [
+    lastSearchType,
+    lastSearchParams,
+    lastTextQuery,
+    searchNearby,
+    searchByQuery,
+  ]);
 
   return {
     restaurants,
