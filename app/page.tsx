@@ -32,7 +32,12 @@ export default function Home() {
     resultLimit: 50,
   });
 
-  const [searchQuery, setSearchQuery] = useState("");
+  // Global Search Query - Used for finding NEW locations ("Explore")
+  const [globalSearchQuery, setGlobalSearchQuery] = useState("");
+
+  // Local Filter Query - Used for filtering CURRENT results ("Filter")
+  const [filterQuery, setFilterQuery] = useState("");
+
   const [mapCenter, setMapCenter] = useState<Location>(DEFAULT_CENTER);
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const hasInitializedLocation = useRef(false);
@@ -48,16 +53,18 @@ export default function Home() {
     refresh,
   } = usePlaces();
 
+  const handleGlobalSearch = () => {
+    if (globalSearchQuery.trim()) {
+      searchByQuery(globalSearchQuery);
+      toast.success(`Searching for area: "${globalSearchQuery}"...`);
+      // When exploring a new area, we might want to reset local filters to see everything there
+      // setFilterQuery("");
+    }
+  };
+
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      if (searchQuery.trim()) {
-        searchByQuery(searchQuery);
-        toast.success(`Searching for "${searchQuery}"...`);
-        // If searching a location name, result might not be "nearby" anymore,
-        // the map center logic should ideally follow first result but current usePlaces logic
-        // sets restaurants which triggers filtering.
-        // We might want to clear filters or be aware that distance filter might hide results.
-      }
+      handleGlobalSearch();
     }
   };
 
@@ -182,9 +189,9 @@ export default function Home() {
       results = results.filter((r) => isRestaurantOpen(r.openingHours));
     }
 
-    // Apply search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    // Apply LOCAL filter query
+    if (filterQuery) {
+      const query = filterQuery.toLowerCase();
       results = results.filter(
         (r) =>
           r.name.toLowerCase().includes(query) ||
@@ -200,7 +207,7 @@ export default function Home() {
     }
 
     return results;
-  }, [filters, location, searchQuery, placesRestaurants]);
+  }, [filters, location, filterQuery, placesRestaurants]);
 
   const handleRestaurantClick = (restaurant: Restaurant) => {
     setMapCenter(restaurant.location);
@@ -219,37 +226,64 @@ export default function Home() {
       {/* Header */}
       <header className="border-b bg-linear-to-r from-orange-500 to-red-500 px-4 py-4 text-white shadow-md">
         <div className="mx-auto max-w-7xl">
-          <h1 className="mb-4 text-2xl font-bold md:text-3xl">🍽️ Eat What?</h1>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <h1 className="text-2xl font-bold md:text-3xl flex items-center gap-2">
+              🍽️ Eat What?
+              <span className="hidden md:inline text-sm font-normal text-white/80 opacity-75">
+                - Find food near you
+              </span>
+            </h1>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Search restaurants, cuisines, or areas... (Press Enter to search)"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                className="bg-white pl-10"
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <Input
+                  placeholder="Where do you want to eat? (e.g. Puchong, KLCC...) - Enter to Explore"
+                  value={globalSearchQuery}
+                  onChange={(e) => setGlobalSearchQuery(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  className="bg-white pl-10 text-black h-10 shadow-inner"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="absolute right-1 top-1 text-gray-400 hover:text-orange-500 h-8"
+                  onClick={handleGlobalSearch}
+                >
+                  Search
+                </Button>
+              </div>
+              <p className="text-[10px] text-white/80 mt-1 pl-1">
+                * Explore Mode: Type a location and press Enter to search that
+                area.
+              </p>
             </div>
+
             <Button
               variant="secondary"
               onClick={() => {
                 hasSearchedPlaces.current = false;
+                setGlobalSearchQuery(""); // Clear global search when getting my location
                 getCurrentLocation();
               }}
               disabled={loading || placesLoading}
-              className="whitespace-nowrap"
+              className="whitespace-nowrap h-10 shadow-sm"
             >
               {loading || placesLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <MapPin className="mr-2 h-4 w-4" />
               )}
-              {location ? "Update Location" : "Get My Location"}
+              {location ? "Update My Location" : "Find Near Me"}
             </Button>
           </div>
-          {location?.address && (
-            <p className="mt-2 text-sm text-white/90">📍 {location.address}</p>
+          {location?.address && !globalSearchQuery && (
+            <p className="mt-2 text-xs text-white/90 flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              Current Location: {location.address}
+            </p>
           )}
         </div>
       </header>
@@ -266,6 +300,8 @@ export default function Home() {
                 onRefresh={handleRefresh}
                 isRefreshing={placesLoading}
                 availableAreas={availableAreas}
+                searchQuery={filterQuery}
+                onSearchChange={setFilterQuery}
               />
               <div className="mt-4 rounded-lg bg-muted p-3 text-sm">
                 <p className="font-medium">
@@ -305,6 +341,8 @@ export default function Home() {
                     onRefresh={handleRefresh}
                     isRefreshing={placesLoading}
                     availableAreas={availableAreas}
+                    searchQuery={filterQuery}
+                    onSearchChange={setFilterQuery}
                   />
                 </div>
               </div>

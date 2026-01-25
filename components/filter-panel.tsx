@@ -16,6 +16,7 @@ import { MultiSelect } from "@/components/multi-select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -40,6 +41,8 @@ interface FilterPanelProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   availableAreas?: string[];
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 export function FilterPanel({
@@ -49,6 +52,8 @@ export function FilterPanel({
   onRefresh,
   isRefreshing = false,
   availableAreas = [],
+  searchQuery = "",
+  onSearchChange,
 }: FilterPanelProps) {
   const updateFilter = <K extends keyof FilterState>(
     key: K,
@@ -68,6 +73,7 @@ export function FilterPanel({
       openNow: false,
       resultLimit: 50,
     });
+    if (onSearchChange) onSearchChange("");
   };
 
   const activeFilterCount =
@@ -76,10 +82,23 @@ export function FilterPanel({
     filters.dietary.length +
     filters.priceRange.length +
     (filters.minRating > 0 ? 1 : 0) +
-    (filters.openNow ? 1 : 0);
+    (filters.openNow ? 1 : 0) +
+    (searchQuery ? 1 : 0);
 
   const filterContent = (
     <div className="space-y-6">
+      {/* Keyword Filter */}
+      {onSearchChange && (
+        <div className="space-y-2">
+          <Label>Filter Results</Label>
+          <Input
+            placeholder="Filter by name, dish..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+        </div>
+      )}
+
       {/* Area Filter */}
       <div className="space-y-2">
         <Label>Location</Label>
