@@ -18,6 +18,7 @@ interface UsePlacesResult {
     radius?: number,
     limit?: number,
   ) => Promise<void>;
+  searchByQuery: (query: string) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -385,6 +386,78 @@ export function usePlaces(): UsePlacesResult {
     [],
   );
 
+  const searchByQuery = useCallback(async (query: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (!window.google) {
+        throw new Error("Google Maps not loaded");
+      }
+
+      const service = new google.maps.places.PlacesService(
+        document.createElement("div"),
+      );
+
+      const request: google.maps.places.TextSearchRequest = {
+        query: query,
+        type: "restaurant",
+      };
+
+      service.textSearch(request, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          const mappedRestaurants: Restaurant[] = results.map(
+            (place, index) => {
+              const restaurantName = place.name || "Unknown Restaurant";
+              const cuisine = mapPlaceTypeToCuisine(
+                place.types || [],
+                restaurantName,
+              );
+              const priceLevel = place.price_level || 2;
+
+              return {
+                id: place.place_id || `place-${index}`,
+                name: restaurantName,
+                cuisine,
+                rating: place.rating || 0,
+                priceRange: mapPriceLevel(priceLevel),
+                priceLevel: priceLevel,
+                location: {
+                  lat: place.geometry?.location?.lat() || 0,
+                  lng: place.geometry?.location?.lng() || 0,
+                },
+                address: place.vicinity || place.formatted_address || "",
+                area: extractLocation(
+                  place.formatted_address || place.vicinity,
+                ),
+                phoneNumber: "",
+                photoUrl:
+                  place.photos?.[0]?.getUrl({ maxWidth: 400 }) ||
+                  "/placeholder-restaurant.jpg",
+                dietaryOptions: [] as DietaryOption[],
+                openingHours: [],
+                isOpen: place.opening_hours?.isOpen?.() ?? undefined,
+                userRatingsTotal: place.user_ratings_total,
+                dineIn: (place as any).dine_in,
+                takeout: (place as any).takeout,
+                delivery: (place as any).delivery,
+              };
+            },
+          );
+
+          setRestaurants(mappedRestaurants);
+          setLoading(false);
+        } else {
+          setError(`Failed to search restaurants: ${status}`);
+          setLoading(false);
+        }
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
+      setLoading(false);
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
     if (lastSearchParams) {
       // Create a slightly offset location to get different results
@@ -406,6 +479,7 @@ export function usePlaces(): UsePlacesResult {
     loading,
     error,
     searchNearby,
+    searchByQuery,
     refresh,
   };
 }

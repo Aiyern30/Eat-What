@@ -44,8 +44,23 @@ export default function Home() {
     loading: placesLoading,
     error: placesError,
     searchNearby,
+    searchByQuery,
     refresh,
   } = usePlaces();
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      if (searchQuery.trim()) {
+        searchByQuery(searchQuery);
+        toast.success(`Searching for "${searchQuery}"...`);
+        // If searching a location name, result might not be "nearby" anymore,
+        // the map center logic should ideally follow first result but current usePlaces logic
+        // sets restaurants which triggers filtering.
+        // We might want to clear filters or be aware that distance filter might hide results.
+      }
+    }
+  };
+
   const isMobile = useIsMobile();
 
   // Get user location on mount
@@ -104,6 +119,15 @@ export default function Home() {
       .filter((area) => area && area !== "Unknown");
     // Get unique areas and sort alphabetically
     return Array.from(new Set(areas)).sort();
+  }, [placesRestaurants]);
+
+  // Update map center when placesRestaurants change (e.g. after a search)
+  useEffect(() => {
+    if (placesRestaurants.length > 0 && placesRestaurants[0].location) {
+      // Only re-center if we have results and it hasn't been set manually recently
+      // For simplicity, always centering on the first result of a new search is good UX for "Search by Text"
+      setMapCenter(placesRestaurants[0].location);
+    }
   }, [placesRestaurants]);
 
   // Filter and sort restaurants
@@ -200,9 +224,10 @@ export default function Home() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
-                placeholder="Search restaurants, cuisines, or areas..."
+                placeholder="Search restaurants, cuisines, or areas... (Press Enter to search)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 className="bg-white pl-10"
               />
             </div>
@@ -239,7 +264,9 @@ export default function Home() {
                 filters={filters}
                 onFilterChange={setFilters}
                 onRefresh={handleRefresh}
-                isRefreshing={placesLoading}                availableAreas={availableAreas}              />
+                isRefreshing={placesLoading}
+                availableAreas={availableAreas}
+              />
               <div className="mt-4 rounded-lg bg-muted p-3 text-sm">
                 <p className="font-medium">
                   {filteredRestaurants.length} restaurant
