@@ -216,18 +216,38 @@ const mapPriceLevel = (priceLevel?: number): PriceRange => {
 // Extract city/state from vicinity address
 const extractLocation = (vicinity?: string): string => {
   if (!vicinity) return "Unknown";
-  
+
   // Split by comma and get the last meaningful part (usually city or state)
-  const parts = vicinity.split(",").map(p => p.trim()).filter(p => p);
-  
+  const parts = vicinity
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p);
+
   // Common Malaysian states and cities
   const locations = [
-    "Selangor", "Kuala Lumpur", "KL", "Puchong", "Petaling Jaya", "PJ",
-    "Subang Jaya", "Shah Alam", "Klang", "Kajang", "Cheras", "Ampang",
-    "Mont Kiara", "Bangsar", "KLCC", "Bukit Bintang", "Damansara",
-    "Putrajaya", "Cyberjaya", "Seri Kembangan", "Bangi"
+    "Selangor",
+    "Kuala Lumpur",
+    "KL",
+    "Puchong",
+    "Petaling Jaya",
+    "PJ",
+    "Subang Jaya",
+    "Shah Alam",
+    "Klang",
+    "Kajang",
+    "Cheras",
+    "Ampang",
+    "Mont Kiara",
+    "Bangsar",
+    "KLCC",
+    "Bukit Bintang",
+    "Damansara",
+    "Putrajaya",
+    "Cyberjaya",
+    "Seri Kembangan",
+    "Bangi",
   ];
-  
+
   // Find the first part that matches a known location
   for (const part of parts) {
     for (const location of locations) {
@@ -236,7 +256,7 @@ const extractLocation = (vicinity?: string): string => {
       }
     }
   }
-  
+
   // If no match, return the last part (usually city/area)
   return parts[parts.length - 1] || "Unknown";
 };
@@ -336,6 +356,13 @@ export function usePlaces(): UsePlacesResult {
                       dietaryOptions: [] as DietaryOption[],
                       openingHours: [],
                       isOpen: place.opening_hours?.isOpen?.() ?? undefined,
+                      userRatingsTotal: place.user_ratings_total,
+                      // The Google Maps JavaScript API types might not explicitly include these boolean flags in all versions of the typedefs,
+                      // but they are often present in the result object for restaurants.
+                      // We'll fallback to checking types array if direct booleans aren't there (though types are less reliable for 'no delivery').
+                      dineIn: (place as any).dine_in,
+                      takeout: (place as any).takeout,
+                      delivery: (place as any).delivery,
                     };
                   });
 
