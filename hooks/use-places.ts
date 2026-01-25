@@ -19,6 +19,7 @@ interface UsePlacesResult {
     limit?: number,
   ) => Promise<void>;
   searchByQuery: (query: string, limit?: number) => Promise<void>;
+  getPlaceDetails: (placeId: string) => Promise<Restaurant | null>;
   refresh: () => Promise<void>;
 }
 
@@ -541,6 +542,105 @@ export function usePlaces(): UsePlacesResult {
     [],
   );
 
+  const getPlaceDetails = useCallback(
+    async (placeId: string): Promise<Restaurant | null> => {
+      return new Promise((resolve, reject) => {
+        try {
+          if (!window.google) {
+            reject(new Error("Google Maps not loaded"));
+            return;
+          }
+
+          const service = new google.maps.places.PlacesService(
+            document.createElement("div"),
+          );
+
+          const request: google.maps.places.PlaceDetailsRequest = {
+            placeId: placeId,
+            fields: [
+              "name",
+              "rating",
+              "formatted_phone_number",
+              "formatted_address",
+              "geometry",
+              "photos",
+              "reviews",
+              "url",
+              "website",
+              "price_level",
+              "types",
+              "opening_hours",
+              "user_ratings_total",
+              "vicinity",
+            ],
+          };
+
+          service.getDetails(request, (place, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+              const restaurantName = place.name || "Unknown Restaurant";
+              const cuisine = mapPlaceTypeToCuisine(
+                place.types || [],
+                restaurantName,
+              );
+              const priceLevel = place.price_level || 2;
+
+              // Map Reviews
+              const reviews = (place.reviews || []).map((r) => ({
+                author_name: r.author_name,
+                rating: r.rating || 0,
+                relative_time_description: r.relative_time_description,
+                text: r.text,
+                profile_photo_url: r.profile_photo_url,
+                time: r.time,
+              }));
+
+              // Map Photos
+              const photos = (place.photos || []).map((p) =>
+                p.getUrl({ maxWidth: 800 }),
+              );
+
+              const details: Restaurant = {
+                id: placeId,
+                name: restaurantName,
+                cuisine,
+                rating: place.rating || 0,
+                priceRange: mapPriceLevel(priceLevel),
+                priceLevel: priceLevel,
+                location: {
+                  lat: place.geometry?.location?.lat() || 0,
+                  lng: place.geometry?.location?.lng() || 0,
+                },
+                address: place.formatted_address || place.vicinity || "",
+                area: extractLocation(
+                  place.formatted_address || place.vicinity,
+                ),
+                phoneNumber: place.formatted_phone_number,
+                photoUrl:
+                  place.photos?.[0]?.getUrl({ maxWidth: 400 }) ||
+                  "/placeholder-restaurant.jpg",
+                photos: photos,
+                dietaryOptions: [],
+                openingHours: [],
+                weekdayText: place.opening_hours?.weekday_text,
+                isOpen: place.opening_hours?.isOpen?.() ?? undefined,
+                userRatingsTotal: place.user_ratings_total,
+                website: place.website,
+                url: place.url,
+                reviews: reviews,
+              };
+              resolve(details);
+            } else {
+              reject(new Error(`Failed to get place details: ${status}`));
+            }
+          });
+        } catch (err) {
+          reject(err);
+        }
+      });
+    },
+    [],
+  );
+
   const refresh = useCallback(async () => {
     if (lastSearchType === "nearby" && lastSearchParams) {
       // Create a slightly offset location to get different results
@@ -580,6 +680,7 @@ export function usePlaces(): UsePlacesResult {
     error,
     searchNearby,
     searchByQuery,
+    getPlaceDetails,
     refresh,
   };
 }

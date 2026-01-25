@@ -32,6 +32,15 @@ export interface OpeningHours {
   close: string; // "HH:MM"
 }
 
+export interface Review {
+  author_name: string;
+  rating: number;
+  relative_time_description: string;
+  text: string;
+  profile_photo_url: string;
+  time: number;
+}
+
 export interface Restaurant {
   id: string;
   name: string;
@@ -43,15 +52,20 @@ export interface Restaurant {
   address: string;
   area: string;
   phoneNumber?: string;
-  photoUrl?: string;
+  photoUrl?: string; // Main photo
+  photos?: string[]; // All photo URLs
   dietaryOptions: DietaryOption[];
   openingHours?: OpeningHours[];
+  weekdayText?: string[]; // Full text opening hours
   distance?: number; // Will be calculated based on user location
   isOpen?: boolean; // Current open status from Google Places
   userRatingsTotal?: number;
   dineIn?: boolean;
   takeout?: boolean;
   delivery?: boolean;
+  website?: string;
+  reviews?: Review[];
+  url?: string; // Google Maps URL
 }
 
 export interface FilterState {

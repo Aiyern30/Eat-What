@@ -14,6 +14,7 @@ import { Map, List, MapPin, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { GoogleMap } from "@/components/google-map";
+import { RestaurantDetails } from "@/components/restaurant-details";
 
 const DEFAULT_CENTER: Location = {
   lat: 3.139, // Kuala Lumpur center
@@ -43,6 +44,8 @@ export default function Home() {
 
   const [mapCenter, setMapCenter] = useState<Location>(DEFAULT_CENTER);
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
+  const [selectedRestaurant, setSelectedRestaurant] =
+    useState<Restaurant | null>(null);
   const hasInitializedLocation = useRef(false);
   const hasSearchedPlaces = useRef(false);
 
@@ -223,7 +226,11 @@ export default function Home() {
 
   const handleRestaurantClick = (restaurant: Restaurant) => {
     setMapCenter(restaurant.location);
+    setSelectedRestaurant(restaurant);
     if (isMobile) {
+      // On mobile, maybe we don't switch view mode anymore if we show a popup?
+      // Or we switch to map to see where it is + popup atop?
+      // Let's keep existing behavior + popup
       setViewMode("map");
     }
   };
@@ -416,6 +423,13 @@ export default function Home() {
           )}
         </main>
       </div>
+
+      <RestaurantDetails
+        restaurant={selectedRestaurant}
+        isOpen={!!selectedRestaurant}
+        onClose={() => setSelectedRestaurant(null)}
+        userLocation={location?.coords}
+      />
     </div>
   );
 }
