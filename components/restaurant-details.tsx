@@ -118,7 +118,7 @@ export function RestaurantDetails({
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side="right"
-        className="w-screen sm:w-[450px] p-0 border-l sm:max-w-[450px] gap-0 flex flex-col z-110"
+        className="w-screen sm:w-[450px] p-0 border-l sm:max-w-[450px] gap-0 flex flex-col z-110 [&>button]:hidden"
       >
         {/* Header Image Section */}
         <div className="relative h-64 w-full shrink-0 bg-muted">
@@ -152,7 +152,7 @@ export function RestaurantDetails({
           </Button>
         </div>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 h-full overflow-auto">
           <div className="p-6 space-y-6">
             {/* Header Information */}
             <div>
