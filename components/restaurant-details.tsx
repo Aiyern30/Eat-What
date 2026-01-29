@@ -39,6 +39,7 @@ import Image from "next/image";
 import { formatDistance, isRestaurantOpen } from "@/lib/utils";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SaveButton } from "@/components/save-button";
 
 interface RestaurantDetailsProps {
   restaurant: Restaurant | null;
@@ -240,8 +241,7 @@ export function RestaurantDetails({
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="grid grid-cols-4 gap-2 border-b pb-6">
+              <div className="grid grid-cols-5 gap-2 border-b pb-6">
                 <Button
                   variant="outline"
                   className="flex flex-col h-auto py-3 px-1 gap-1 border-blue-600 text-blue-600 hover:bg-blue-50"
@@ -250,6 +250,11 @@ export function RestaurantDetails({
                   <Navigation className="h-5 w-5" />
                   <span className="text-xs font-medium">Directions</span>
                 </Button>
+                <SaveButton
+                  restaurantId={details.id}
+                  restaurantName={details.name}
+                  className="flex flex-col h-auto py-3 px-1 gap-1 hover:bg-gray-50 bg-white"
+                />
                 <Button
                   variant="outline"
                   className="flex flex-col h-auto py-3 px-1 gap-1 hover:bg-gray-50"

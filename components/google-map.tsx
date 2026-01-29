@@ -15,6 +15,7 @@ import { MapPin, Star, Clock, DollarSign, Navigation } from "lucide-react";
 import Image from "next/image";
 import { MapTheme } from "@/types/map";
 import { MapThemeSelector } from "@/components/map-theme-selector";
+import { SaveButton } from "@/components/save-button";
 
 interface GoogleMapProps {
   center: Location;
@@ -425,18 +426,25 @@ export function GoogleMap({
                   </span>
                 </div>
 
-                <button
-                  className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
-                  onClick={() => {
-                    window.open(
-                      `https://www.google.com/maps/dir/?api=1&destination=${selectedRestaurant.location.lat},${selectedRestaurant.location.lng}`,
-                      "_blank",
-                    );
-                  }}
-                >
-                  <Navigation className="w-4 h-4" />
-                  Get Directions
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    className="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+                    onClick={() => {
+                      window.open(
+                        `https://www.google.com/maps/dir/?api=1&destination=${selectedRestaurant.location.lat},${selectedRestaurant.location.lng}`,
+                        "_blank",
+                      );
+                    }}
+                  >
+                    <Navigation className="w-4 h-4" />
+                    Directions
+                  </button>
+                  <SaveButton
+                    restaurantId={selectedRestaurant.id}
+                    restaurantName={selectedRestaurant.name}
+                    className="flex-1 h-auto py-2.5 rounded-xl"
+                  />
+                </div>
               </div>
             </div>
           </InfoWindowF>

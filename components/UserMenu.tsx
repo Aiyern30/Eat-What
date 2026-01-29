@@ -23,7 +23,7 @@ export function UserMenu() {
   if (!session) {
     return (
       <Button
-        variant="outline"
+        variant="default"
         onClick={() => signIn("google")}
         className="gap-2 rounded-full px-4"
       >
