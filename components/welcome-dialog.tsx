@@ -24,12 +24,14 @@ interface WelcomeDialogProps {
   onEnableLocation: () => void;
   locationEnabled: boolean;
   isLocationLoading: boolean;
+  onComplete: () => void;
 }
 
 export function WelcomeDialog({
   onEnableLocation,
   locationEnabled,
   isLocationLoading,
+  onComplete,
 }: WelcomeDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { data: session, status: authStatus } = useSession();
@@ -43,13 +45,26 @@ export function WelcomeDialog({
   }, []);
 
   const handleComplete = () => {
+    if (!locationEnabled || !session) return;
     localStorage.setItem("hasSeenWelcome", "true");
     setIsOpen(false);
+    onComplete();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden border-none shadow-2xl gap-0">
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        // Prevent closing if requirements aren't met
+        if (!open && (!locationEnabled || !session)) return;
+        setIsOpen(open);
+      }}
+    >
+      <DialogContent
+        className="sm:max-w-[450px] p-0 overflow-hidden border-none shadow-2xl gap-0"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <div className="bg-linear-to-br from-orange-500 via-red-500 to-pink-600 p-8 text-white relative">
           <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
             <UtensilsCrossed className="w-32 h-32 rotate-12" />
@@ -193,10 +208,14 @@ export function WelcomeDialog({
           <DialogFooter className="sm:justify-center">
             <Button
               onClick={handleComplete}
-              variant="ghost"
-              className="w-full h-11 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-bold transition-colors"
+              disabled={!locationEnabled || !session}
+              className={`w-full h-11 rounded-xl font-bold transition-all shadow-lg ${
+                locationEnabled && session
+                  ? "bg-linear-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-orange-200"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none border border-gray-200"
+              }`}
             >
-              Continue to the Map
+              Start Exploring
             </Button>
           </DialogFooter>
         </div>

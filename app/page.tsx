@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Restaurant, FilterState, Location } from "@/types/restaurant";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { usePlaces } from "@/hooks/use-places";
@@ -95,7 +95,12 @@ export default function Home() {
 
   // Update map center and search for nearby restaurants when user location is first obtained
   useEffect(() => {
-    if (location && !hasInitializedLocation.current) {
+    if (
+      location &&
+      !hasInitializedLocation.current &&
+      typeof window !== "undefined" &&
+      window.google
+    ) {
       // This is a valid use case - syncing map center with external location data
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setMapCenter(location.coords);
@@ -108,6 +113,16 @@ export default function Home() {
         hasSearchedPlaces.current = true;
         toast.success("Finding restaurants near you...");
       }
+    }
+  }, [location, filters.distance, filters.resultLimit, searchNearby]);
+
+  const handleOnboardingComplete = useCallback(() => {
+    setHasSeenWelcome(true);
+    if (location) {
+      const radiusInMeters = filters.distance * 1000;
+      searchNearby(location.coords, radiusInMeters, filters.resultLimit);
+      hasSearchedPlaces.current = true;
+      toast.success("Discovering restaurants near you!");
     }
   }, [location, filters.distance, filters.resultLimit, searchNearby]);
 
@@ -446,6 +461,7 @@ export default function Home() {
         onEnableLocation={getCurrentLocation}
         locationEnabled={!!location}
         isLocationLoading={loading}
+        onComplete={handleOnboardingComplete}
       />
     </div>
   );
