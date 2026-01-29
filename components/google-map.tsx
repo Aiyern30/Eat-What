@@ -11,6 +11,7 @@ import { useState, useMemo } from "react";
 import { Restaurant, Location } from "@/types/restaurant";
 import { Spinner } from "@/components/ui/spinner";
 import { MapPin, Star, Clock, DollarSign, Navigation } from "lucide-react";
+import Image from "next/image";
 
 interface GoogleMapProps {
   center: Location;
@@ -283,21 +284,72 @@ export function GoogleMap({
               disableAutoPan: true,
             }}
           >
-            <div className="px-3 py-2 min-w-[180px]">
-              <h4 className="font-semibold text-sm text-gray-900 mb-1">
-                {hoveredRestaurant.name}
-              </h4>
-              <div className="flex items-center gap-2 text-xs text-gray-600">
-                <span className="flex items-center gap-1">
-                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                  {hoveredRestaurant.rating}
-                </span>
-                {hoveredRestaurant.distance && (
-                  <>
-                    <span>•</span>
-                    <span>{hoveredRestaurant.distance.toFixed(1)}km</span>
-                  </>
+            <div className="w-[280px] overflow-hidden">
+              <div className="relative h-32 w-full bg-gray-100">
+                {hoveredRestaurant.photoUrl ? (
+                  <Image
+                    src={hoveredRestaurant.photoUrl}
+                    alt={hoveredRestaurant.name}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
+                    <MapPin className="h-8 w-8 opacity-20" />
+                  </div>
                 )}
+                {/* Overlay Badge */}
+                <div className="absolute top-2 right-2">
+                  <span className="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md text-[10px] font-bold shadow-xs">
+                    {hoveredRestaurant.distance
+                      ? `${hoveredRestaurant.distance.toFixed(1)}km`
+                      : "Nearby"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3">
+                <h3 className="font-bold text-base mb-1 text-gray-900 line-clamp-1">
+                  {hoveredRestaurant.name}
+                </h3>
+
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {hoveredRestaurant.cuisine.slice(0, 3).map((cuisine) => (
+                    <span
+                      key={cuisine}
+                      className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-medium"
+                    >
+                      {cuisine}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-0.5 font-medium">
+                      <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                      <span>{hoveredRestaurant.rating}</span>
+                    </div>
+                    <span className="text-gray-300">|</span>
+                    <div className="text-gray-600">
+                      {(() => {
+                        const level = hoveredRestaurant.priceLevel;
+                        if (level === 1) return "RM 10–20";
+                        if (level === 2) return "RM 20–40";
+                        if (level === 3) return "RM 40–100";
+                        if (level && level >= 4) return "RM 100+";
+
+                        const range = hoveredRestaurant.priceRange;
+                        if (range?.length === 1) return "RM 10–20";
+                        if (range?.length === 2) return "RM 20–40";
+                        if (range?.length === 3) return "RM 40–100";
+                        if (range?.length >= 4) return "RM 100+";
+
+                        return "Price hidden";
+                      })()}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </InfoWindowF>
@@ -309,86 +361,88 @@ export function GoogleMap({
             position={selectedRestaurant.location}
             onCloseClick={() => setSelectedRestaurant(null)}
           >
-            <div className="p-3 max-w-xs">
-              <h3 className="font-bold text-base mb-2 text-gray-900">
-                {selectedRestaurant.name}
-              </h3>
-
-              {/* Cuisine tags */}
-              <div className="flex flex-wrap gap-1 mb-2">
-                {selectedRestaurant.cuisine.slice(0, 3).map((cuisine) => (
-                  <span
-                    key={cuisine}
-                    className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
-                  >
-                    {cuisine}
-                  </span>
-                ))}
-              </div>
-
-              {/* Rating and details */}
-              <div className="space-y-1.5 mb-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="font-semibold text-gray-900">
-                    {selectedRestaurant.rating}
-                  </span>
-                  <span className="text-gray-500">(Reviews)</span>
-                </div>
-
-                {(selectedRestaurant.priceLevel ||
-                  selectedRestaurant.priceRange) && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <DollarSign className="w-4 h-4 text-green-600" />
-                    <span className="text-gray-700">
-                      {(() => {
-                        const level = selectedRestaurant.priceLevel;
-                        if (level === 1) return "RM 10–20";
-                        if (level === 2) return "RM 20–40";
-                        if (level === 3) return "RM 40–100";
-                        if (level && level >= 4) return "RM 100+";
-
-                        const range = selectedRestaurant.priceRange;
-                        if (range?.length === 1) return "RM 10–20";
-                        if (range?.length === 2) return "RM 20–40";
-                        if (range?.length === 3) return "RM 40–100";
-                        if (range?.length >= 4) return "RM 100+";
-
-                        return "Price hidden";
-                      })()}
-                    </span>
+            <div className="w-[300px] overflow-hidden">
+              {/* Image Header */}
+              <div className="relative h-40 w-full bg-gray-100">
+                {selectedRestaurant.photoUrl ? (
+                  <Image
+                    src={selectedRestaurant.photoUrl}
+                    alt={selectedRestaurant.name}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
+                    <MapPin className="h-10 w-10 opacity-20" />
                   </div>
                 )}
-
-                {selectedRestaurant.distance && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Navigation className="w-4 h-4 text-blue-600" />
-                    <span className="text-gray-700">
-                      {selectedRestaurant.distance.toFixed(1)}km away
-                    </span>
-                  </div>
-                )}
-
-                {/* You can add opening hours here if available */}
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="w-4 h-4 text-emerald-600" />
-                  <span className="text-emerald-600 font-medium">Open now</span>
+                <div className="absolute top-3 left-3">
+                  <span className="px-2 py-1 bg-green-500 text-white rounded-md text-[10px] font-bold shadow-md">
+                    Open Now
+                  </span>
                 </div>
               </div>
 
-              {/* Action button */}
-              <button
-                className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                onClick={() => {
-                  // Add directions or details action
-                  window.open(
-                    `https://www.google.com/maps/dir/?api=1&destination=${selectedRestaurant.location.lat},${selectedRestaurant.location.lng}`,
-                    "_blank",
-                  );
-                }}
-              >
-                Get Directions
-              </button>
+              {/* Content */}
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-bold text-lg text-gray-900 leading-tight mb-1">
+                      {selectedRestaurant.name}
+                    </h3>
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <MapPin className="w-3 h-3" />
+                      <span className="line-clamp-1 max-w-[200px]">
+                        {selectedRestaurant.address}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 bg-yellow-50 border border-yellow-100 rounded text-xs">
+                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-500" />
+                    <span className="font-bold text-yellow-700">
+                      {selectedRestaurant.rating}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-400">•</span>
+                  <span className="text-xs font-medium text-gray-700">
+                    {(() => {
+                      const level = selectedRestaurant.priceLevel;
+                      if (level === 1) return "RM 10–20";
+                      if (level === 2) return "RM 20–40";
+                      if (level === 3) return "RM 40–100";
+                      if (level && level >= 4) return "RM 100+";
+
+                      const range = selectedRestaurant.priceRange;
+                      if (range?.length === 1) return "RM 10–20";
+                      if (range?.length === 2) return "RM 20–40";
+                      if (range?.length === 3) return "RM 40–100";
+                      if (range?.length >= 4) return "RM 100+";
+
+                      return "Price hidden";
+                    })()}
+                  </span>
+                  <span className="text-xs text-gray-400">•</span>
+                  <span className="text-xs text-gray-600">
+                    {selectedRestaurant.cuisine[0]}
+                  </span>
+                </div>
+
+                <button
+                  className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+                  onClick={() => {
+                    window.open(
+                      `https://www.google.com/maps/dir/?api=1&destination=${selectedRestaurant.location.lat},${selectedRestaurant.location.lng}`,
+                      "_blank",
+                    );
+                  }}
+                >
+                  <Navigation className="w-4 h-4" />
+                  Get Directions
+                </button>
+              </div>
             </div>
           </InfoWindowF>
         )}
