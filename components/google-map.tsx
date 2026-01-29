@@ -9,6 +9,7 @@ import {
 } from "@react-google-maps/api";
 import { useState, useMemo, useRef, useCallback } from "react";
 import { Restaurant, Location } from "@/types/restaurant";
+import { MAP_STYLES } from "@/data/map-styles";
 import { Spinner } from "@/components/ui/spinner";
 import {
   MapPin,
@@ -16,9 +17,8 @@ import {
   Clock,
   DollarSign,
   Navigation,
-  RotateCw,
-  RotateCcw,
-  Compass,
+  Layers,
+  Check,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -37,34 +37,7 @@ const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = [
   "places",
 ];
 
-// Custom map styles for a more refined look
-const mapStyles = [
-  {
-    featureType: "poi",
-    elementType: "labels",
-    stylers: [{ visibility: "off" }],
-  },
-  {
-    featureType: "water",
-    elementType: "geometry",
-    stylers: [{ color: "#e3f2fd" }],
-  },
-  {
-    featureType: "landscape",
-    elementType: "geometry",
-    stylers: [{ color: "#f5f5f5" }],
-  },
-  {
-    featureType: "road",
-    elementType: "geometry",
-    stylers: [{ color: "#ffffff" }],
-  },
-  {
-    featureType: "road",
-    elementType: "geometry.stroke",
-    stylers: [{ color: "#e0e0e0" }],
-  },
-];
+// Custom map styles are imported from @/data/map-styles
 
 // Get marker color based on rating
 const getMarkerColor = (rating: number): string => {
@@ -133,8 +106,10 @@ export function GoogleMap({
   const [hoveredRestaurant, setHoveredRestaurant] = useState<Restaurant | null>(
     null,
   );
-  const [heading, setHeading] = useState(0);
-  const [tilt, setTilt] = useState(0);
+  const [mapTheme, setMapTheme] = useState<
+    "standard" | "dark" | "retro" | "satellite" | "hybrid"
+  >("standard");
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
 
   const mapRef = useRef<google.maps.Map | null>(null);
 
@@ -147,7 +122,6 @@ export function GoogleMap({
   }, []);
 
   const GoogleMapAPI = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  const MapID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID;
 
   if (!GoogleMapAPI) {
     throw new Error(
@@ -169,22 +143,25 @@ export function GoogleMap({
     [minimal],
   );
 
-  const mapOptions = useMemo<google.maps.MapOptions>(
-    () => ({
+  const mapOptions = useMemo<google.maps.MapOptions>(() => {
+    const isSatellite = mapTheme === "satellite" || mapTheme === "hybrid";
+
+    return {
       disableDefaultUI: false,
       clickableIcons: false,
       scrollwheel: true,
-      styles: mapStyles,
       mapTypeControl: false,
       fullscreenControl: !minimal,
       streetViewControl: false,
       zoomControl: !minimal,
-      heading,
-      tilt,
-      mapId: MapID || "DEMO_MAP_ID", // Try to use vector map if ID exists, or fallback (standard map ignores invalid ID usually, or defaults to raster)
-    }),
-    [minimal, heading, tilt, MapID],
-  );
+      // Map Type & Styles
+      mapTypeId: isSatellite ? mapTheme : "roadmap",
+      styles: isSatellite
+        ? undefined
+        : MAP_STYLES[mapTheme as keyof typeof MAP_STYLES] ||
+          MAP_STYLES.standard,
+    };
+  }, [minimal, mapTheme]);
 
   const handleMarkerClick = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
@@ -238,7 +215,7 @@ export function GoogleMap({
                 streetViewControl: false,
                 fullscreenControl: false,
                 gestureHandling: "cooperative",
-                styles: mapStyles,
+                styles: MAP_STYLES.standard,
               }
             : mapOptions
         }
@@ -475,65 +452,50 @@ export function GoogleMap({
         )}
       </GoogleMapComponent>
 
-      {/* 3D Exploration Controls */}
+      {/* Map Style Selector */}
       {!minimal && (
-        <div className="absolute top-16 right-3 z-10 flex flex-col gap-2">
-          {/* Compass / Reset */}
+        <div className="absolute top-16 right-3 z-10 flex flex-col items-end gap-2">
+          {/* Toggle Button */}
           <button
-            className="bg-white p-2 rounded-lg shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50"
-            onClick={() => {
-              setHeading(0);
-              setTilt(0);
-            }}
-            title="Reset North"
-          >
-            <Compass
-              className="w-5 h-5 transition-transform duration-500"
-              style={{ transform: `rotate(${heading}deg)` }}
-            />
-          </button>
-
-          {/* Tilt Toggle */}
-          <button
-            className={`p-2 rounded-lg shadow-md border transition-all h-9 w-9 flex items-center justify-center ${
-              tilt > 0
+            className={`p-2 rounded-lg shadow-md border transition-all ${
+              showThemeMenu
                 ? "bg-blue-600 border-blue-700 text-white"
                 : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
             }`}
-            onClick={() => {
-              const newTilt = tilt === 0 ? 45 : 0;
-              setTilt(newTilt);
-              // Auto-zoom if tilting to 3D and too far out
-              if (newTilt > 0 && mapRef.current) {
-                if ((mapRef.current.getZoom() || 0) < 18) {
-                  mapRef.current.setZoom(18);
-                }
-              }
-            }}
-            title="Toggle 3D View"
+            onClick={() => setShowThemeMenu(!showThemeMenu)}
+            title="Map Theme"
           >
-            <span className="text-[10px] font-bold">
-              {tilt > 0 ? "2D" : "3D"}
-            </span>
+            <Layers className="w-5 h-5" />
           </button>
 
-          {/* Rotate Controls Group */}
-          <div className="flex flex-col rounded-lg shadow-md border border-gray-200 overflow-hidden bg-white">
-            <button
-              className="p-2 hover:bg-gray-50 border-b border-gray-100"
-              onClick={() => setHeading((h) => h - 90)}
-              title="Rotate Left"
-            >
-              <RotateCcw className="w-5 h-5 text-gray-700" />
-            </button>
-            <button
-              className="p-2 hover:bg-gray-50"
-              onClick={() => setHeading((h) => h + 90)}
-              title="Rotate Right"
-            >
-              <RotateCw className="w-5 h-5 text-gray-700" />
-            </button>
-          </div>
+          {/* Theme Menu */}
+          {showThemeMenu && (
+            <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-2 min-w-[140px] animate-in fade-in slide-in-from-top-1">
+              <div className="space-y-1">
+                {(
+                  ["standard", "satellite", "hybrid", "dark", "retro"] as const
+                ).map((theme) => (
+                  <button
+                    key={theme}
+                    onClick={() => {
+                      setMapTheme(theme);
+                      setShowThemeMenu(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center justify-between group ${
+                      mapTheme === theme
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="capitalize">{theme}</span>
+                    {mapTheme === theme && (
+                      <Check className="w-4 h-4 text-blue-600" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
