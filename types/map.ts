@@ -5,7 +5,6 @@ export type MapTheme =
   | "satellite"
   | "hybrid"
   | "silver"
-  | "night"
   | "aubergine";
 
 export interface MapThemeConfig {

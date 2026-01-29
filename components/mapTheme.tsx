@@ -89,21 +89,7 @@ export const getMapThemeConfigs = (): MapThemeConfig[] => [
       </div>
     ),
   },
-  {
-    id: "night",
-    label: "Night",
-    preview: (
-      <div className="w-full h-full bg-linear-to-br from-[#1a1f2e] via-[#242f3e] to-[#2c3e50] relative overflow-hidden">
-        <div className="absolute bottom-0 right-0 w-16 h-12 bg-[#17263c]/80 rounded-tl-3xl" />
-        <div className="absolute top-1/3 left-0 w-full h-[2px] bg-[#746855] transform -rotate-12" />
-        <div className="absolute top-1/2 left-0 w-full h-[3px] bg-[#d59563] transform rotate-6" />
-        <div className="absolute top-0 left-1/4 h-full w-px bg-[#38414e]" />
-        <div className="absolute top-3 right-3 w-4 h-4 bg-[#263c3f]/70 rounded" />
-        <div className="absolute bottom-3 left-3 w-3 h-3 bg-[#f3d19c]/20 rounded-full" />
-        <div className="absolute top-1/2 left-1/2 w-10 h-10 bg-[#d59563]/10 rounded-full blur-lg" />
-      </div>
-    ),
-  },
+
   {
     id: "aubergine",
     label: "Aubergine",
