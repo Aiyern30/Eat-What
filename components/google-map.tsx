@@ -21,6 +21,7 @@ import {
   Check,
 } from "lucide-react";
 import Image from "next/image";
+import { MapTheme } from "@/types/map";
 
 interface GoogleMapProps {
   center: Location;
@@ -106,9 +107,7 @@ export function GoogleMap({
   const [hoveredRestaurant, setHoveredRestaurant] = useState<Restaurant | null>(
     null,
   );
-  const [mapTheme, setMapTheme] = useState<
-    "standard" | "dark" | "retro" | "satellite" | "hybrid"
-  >("standard");
+  const [mapTheme, setMapTheme] = useState<MapTheme>("standard");
   const [showThemeMenu, setShowThemeMenu] = useState(false);
 
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -158,8 +157,7 @@ export function GoogleMap({
       mapTypeId: isSatellite ? mapTheme : "roadmap",
       styles: isSatellite
         ? undefined
-        : MAP_STYLES[mapTheme as keyof typeof MAP_STYLES] ||
-          MAP_STYLES.standard,
+        : MAP_STYLES[mapTheme] || MAP_STYLES.standard,
     };
   }, [minimal, mapTheme]);
 
