@@ -336,11 +336,26 @@ export function GoogleMap({
                   <span className="text-gray-500">(Reviews)</span>
                 </div>
 
-                {selectedRestaurant.priceLevel && (
+                {(selectedRestaurant.priceLevel ||
+                  selectedRestaurant.priceRange) && (
                   <div className="flex items-center gap-2 text-sm">
                     <DollarSign className="w-4 h-4 text-green-600" />
                     <span className="text-gray-700">
-                      {"$".repeat(selectedRestaurant.priceLevel)}
+                      {(() => {
+                        const level = selectedRestaurant.priceLevel;
+                        if (level === 1) return "RM 10–20";
+                        if (level === 2) return "RM 20–40";
+                        if (level === 3) return "RM 40–100";
+                        if (level && level >= 4) return "RM 100+";
+
+                        const range = selectedRestaurant.priceRange;
+                        if (range?.length === 1) return "RM 10–20";
+                        if (range?.length === 2) return "RM 20–40";
+                        if (range?.length === 3) return "RM 40–100";
+                        if (range?.length >= 4) return "RM 100+";
+
+                        return "Price hidden";
+                      })()}
                     </span>
                   </div>
                 )}

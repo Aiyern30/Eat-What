@@ -176,25 +176,33 @@ export function FilterPanel({
       {/* Price Range Filter */}
       <div className="space-y-2">
         <Label>Price Range</Label>
-        <div className="flex gap-2">
-          {PRICE_RANGES.map((price) => (
-            <Button
-              key={price}
-              variant={
-                filters.priceRange.includes(price) ? "default" : "outline"
-              }
-              size="sm"
-              onClick={() => {
-                const newPrices = filters.priceRange.includes(price)
-                  ? filters.priceRange.filter((p) => p !== price)
-                  : [...filters.priceRange, price];
-                updateFilter("priceRange", newPrices as PriceRange[]);
-              }}
-              className="flex-1"
-            >
-              {price}
-            </Button>
-          ))}
+        <div className="flex gap-2 flex-wrap">
+          {PRICE_RANGES.map((price) => {
+            const priceLabels: Record<string, string> = {
+              $: "RM 10–20",
+              $$: "RM 20–40",
+              $$$: "RM 40–100",
+              $$$$: "RM 100+",
+            };
+            return (
+              <Button
+                key={price}
+                variant={
+                  filters.priceRange.includes(price) ? "default" : "outline"
+                }
+                size="sm"
+                onClick={() => {
+                  const newPrices = filters.priceRange.includes(price)
+                    ? filters.priceRange.filter((p) => p !== price)
+                    : [...filters.priceRange, price];
+                  updateFilter("priceRange", newPrices as PriceRange[]);
+                }}
+                className="flex-1 whitespace-nowrap"
+              >
+                {priceLabels[price] || price}
+              </Button>
+            );
+          })}
         </div>
       </div>
 
