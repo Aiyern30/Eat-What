@@ -16,6 +16,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { GoogleMap } from "@/components/google-map";
 import { RestaurantDetails } from "@/components/restaurant-details";
 import { UserMenu } from "@/components/UserMenu";
+import { WelcomeDialog } from "@/components/welcome-dialog";
 
 const DEFAULT_CENTER: Location = {
   lat: 3.139, // Kuala Lumpur center
@@ -47,6 +48,8 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<Restaurant | null>(null);
+  const [hasSeenWelcome, setHasSeenWelcome] = useState<boolean | null>(null);
+
   const hasInitializedLocation = useRef(false);
   const hasSearchedPlaces = useRef(false);
 
@@ -59,6 +62,17 @@ export default function Home() {
     searchByQuery,
     refresh,
   } = usePlaces();
+
+  useEffect(() => {
+    // Check if user has seen welcome on mount
+    const seen = localStorage.getItem("hasSeenWelcome") === "true";
+    setHasSeenWelcome(seen);
+
+    // Only auto-get location if they've already onboarded
+    if (seen) {
+      getCurrentLocation();
+    }
+  }, [getCurrentLocation]);
 
   const handleGlobalSearch = () => {
     if (globalSearchQuery.trim()) {
@@ -78,11 +92,6 @@ export default function Home() {
   };
 
   const isMobile = useIsMobile();
-
-  // Get user location on mount
-  useEffect(() => {
-    getCurrentLocation();
-  }, [getCurrentLocation]);
 
   // Update map center and search for nearby restaurants when user location is first obtained
   useEffect(() => {
@@ -104,12 +113,12 @@ export default function Home() {
 
   // Show error toast
   useEffect(() => {
-    if (error) {
+    if (error && hasSeenWelcome) {
       toast.error("Location Error", {
         description: error,
       });
     }
-  }, [error]);
+  }, [error, hasSeenWelcome]);
 
   // Show places error toast
   useEffect(() => {
@@ -431,6 +440,12 @@ export default function Home() {
         isOpen={!!selectedRestaurant}
         onClose={() => setSelectedRestaurant(null)}
         userLocation={location?.coords}
+      />
+
+      <WelcomeDialog
+        onEnableLocation={getCurrentLocation}
+        locationEnabled={!!location}
+        isLocationLoading={loading}
       />
     </div>
   );
