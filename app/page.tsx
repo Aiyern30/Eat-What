@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { GoogleMap } from "@/components/google-map";
 import { RestaurantDetails } from "@/components/restaurant-details";
+import { UserMenu } from "@/components/UserMenu";
 
 const DEFAULT_CENTER: Location = {
   lat: 3.139, // Kuala Lumpur center
@@ -252,6 +253,7 @@ export default function Home() {
                 - Find food near you
               </span>
             </h1>
+            <UserMenu />
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">

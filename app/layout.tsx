@@ -15,8 +15,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Eat What? - Find Your Next Meal",
-  description: "Discover the best restaurants near you with our food finder app",
+  description:
+    "Discover the best restaurants near you with our food finder app",
 };
+
+import { Providers } from "@/components/Providers";
 
 export default function RootLayout({
   children,
@@ -28,7 +31,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <Providers>{children}</Providers>
         <Toaster position="top-right" richColors />
       </body>
     </html>
