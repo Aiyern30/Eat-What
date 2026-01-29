@@ -7,10 +7,19 @@ import {
   InfoWindowF,
   CircleF,
 } from "@react-google-maps/api";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { Restaurant, Location } from "@/types/restaurant";
 import { Spinner } from "@/components/ui/spinner";
-import { MapPin, Star, Clock, DollarSign, Navigation } from "lucide-react";
+import {
+  MapPin,
+  Star,
+  Clock,
+  DollarSign,
+  Navigation,
+  RotateCw,
+  RotateCcw,
+  Compass,
+} from "lucide-react";
 import Image from "next/image";
 
 interface GoogleMapProps {
@@ -124,8 +133,21 @@ export function GoogleMap({
   const [hoveredRestaurant, setHoveredRestaurant] = useState<Restaurant | null>(
     null,
   );
+  const [heading, setHeading] = useState(0);
+  const [tilt, setTilt] = useState(0);
+
+  const mapRef = useRef<google.maps.Map | null>(null);
+
+  const onLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+  }, []);
+
+  const onUnmount = useCallback(() => {
+    mapRef.current = null;
+  }, []);
 
   const GoogleMapAPI = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const MapID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID;
 
   if (!GoogleMapAPI) {
     throw new Error(
@@ -157,8 +179,11 @@ export function GoogleMap({
       fullscreenControl: !minimal,
       streetViewControl: false,
       zoomControl: !minimal,
+      heading,
+      tilt,
+      mapId: MapID || "DEMO_MAP_ID", // Try to use vector map if ID exists, or fallback (standard map ignores invalid ID usually, or defaults to raster)
     }),
-    [minimal],
+    [minimal, heading, tilt, MapID],
   );
 
   const handleMarkerClick = (restaurant: Restaurant) => {
@@ -201,6 +226,8 @@ export function GoogleMap({
         mapContainerStyle={mapContainerStyle}
         center={center}
         zoom={zoom}
+        onLoad={onLoad}
+        onUnmount={onUnmount}
         options={
           minimal
             ? {
@@ -448,6 +475,68 @@ export function GoogleMap({
         )}
       </GoogleMapComponent>
 
+      {/* 3D Exploration Controls */}
+      {!minimal && (
+        <div className="absolute top-16 right-3 z-10 flex flex-col gap-2">
+          {/* Compass / Reset */}
+          <button
+            className="bg-white p-2 rounded-lg shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50"
+            onClick={() => {
+              setHeading(0);
+              setTilt(0);
+            }}
+            title="Reset North"
+          >
+            <Compass
+              className="w-5 h-5 transition-transform duration-500"
+              style={{ transform: `rotate(${heading}deg)` }}
+            />
+          </button>
+
+          {/* Tilt Toggle */}
+          <button
+            className={`p-2 rounded-lg shadow-md border transition-all h-9 w-9 flex items-center justify-center ${
+              tilt > 0
+                ? "bg-blue-600 border-blue-700 text-white"
+                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+            }`}
+            onClick={() => {
+              const newTilt = tilt === 0 ? 45 : 0;
+              setTilt(newTilt);
+              // Auto-zoom if tilting to 3D and too far out
+              if (newTilt > 0 && mapRef.current) {
+                if ((mapRef.current.getZoom() || 0) < 18) {
+                  mapRef.current.setZoom(18);
+                }
+              }
+            }}
+            title="Toggle 3D View"
+          >
+            <span className="text-[10px] font-bold">
+              {tilt > 0 ? "2D" : "3D"}
+            </span>
+          </button>
+
+          {/* Rotate Controls Group */}
+          <div className="flex flex-col rounded-lg shadow-md border border-gray-200 overflow-hidden bg-white">
+            <button
+              className="p-2 hover:bg-gray-50 border-b border-gray-100"
+              onClick={() => setHeading((h) => h - 90)}
+              title="Rotate Left"
+            >
+              <RotateCcw className="w-5 h-5 text-gray-700" />
+            </button>
+            <button
+              className="p-2 hover:bg-gray-50"
+              onClick={() => setHeading((h) => h + 90)}
+              title="Rotate Right"
+            >
+              <RotateCw className="w-5 h-5 text-gray-700" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Minimal mode overlay stats */}
       {minimal && restaurants.length > 0 && (
         <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg border border-gray-200">
@@ -463,9 +552,9 @@ export function GoogleMap({
         </div>
       )}
 
-      {/* Legend for marker colors */}
+      {/* Legend for marker colors - Moved to Top Left to avoid blocking fullscreen */}
       {!minimal && restaurants.length > 0 && (
-        <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-gray-200">
+        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-gray-200 z-10">
           <h4 className="text-xs font-semibold text-gray-700 mb-2">
             Rating Legend
           </h4>
