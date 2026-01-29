@@ -454,48 +454,173 @@ export function GoogleMap({
 
       {/* Map Style Selector */}
       {!minimal && (
-        <div className="absolute top-16 right-3 z-10 flex flex-col items-end gap-2">
-          {/* Toggle Button */}
-          <button
-            className={`p-2 rounded-lg shadow-md border transition-all ${
-              showThemeMenu
-                ? "bg-blue-600 border-blue-700 text-white"
-                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
-            }`}
-            onClick={() => setShowThemeMenu(!showThemeMenu)}
-            title="Map Theme"
-          >
-            <Layers className="w-5 h-5" />
-          </button>
-
-          {/* Theme Menu */}
+        <div className="absolute top-16 right-3 z-10 flex flex-col items-end">
+          {/* Theme Menu Panel */}
           {showThemeMenu && (
-            <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-2 min-w-[140px] animate-in fade-in slide-in-from-top-1">
-              <div className="space-y-1">
-                {(
-                  ["standard", "satellite", "hybrid", "dark", "retro"] as const
-                ).map((theme) => (
+            <div className="absolute top-0 right-14 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 w-[320px] animate-in fade-in slide-in-from-right-5 zoom-in-95 origin-top-right z-20">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-bold text-gray-900">Map Type</h4>
+                <button
+                  onClick={() => setShowThemeMenu(false)}
+                  className="text-gray-400 hover:text-gray-600 text-xs font-medium px-2 py-1 rounded-md hover:bg-gray-100 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  {
+                    id: "standard",
+                    label: "Default",
+                    preview: (
+                      <div className="w-full h-full bg-linear-to-br from-gray-50 to-blue-50 relative overflow-hidden">
+                        {/* Water bodies */}
+                        <div className="absolute bottom-0 right-0 w-16 h-12 bg-blue-200/40 rounded-tl-3xl" />
+                        {/* Major roads */}
+                        <div className="absolute top-1/3 left-0 w-full h-1 bg-yellow-400 transform -rotate-12" />
+                        <div className="absolute top-1/2 left-0 w-full h-[3px] bg-orange-400 transform rotate-6" />
+                        {/* Minor roads */}
+                        <div className="absolute top-2/3 left-0 w-2/3 h-px bg-gray-300 transform -rotate-6" />
+                        <div className="absolute top-1/4 left-1/4 h-full w-px bg-gray-300 transform rotate-12" />
+                        {/* Park/green space */}
+                        <div className="absolute top-3 left-3 w-6 h-6 bg-green-200/60 rounded" />
+                        {/* Building blocks */}
+                        <div className="absolute bottom-2 left-4 w-2 h-2 bg-gray-300/50 rounded-sm" />
+                      </div>
+                    ),
+                  },
+                  {
+                    id: "satellite",
+                    label: "Satellite",
+                    preview: (
+                      <div className="w-full h-full bg-linear-to-br from-emerald-900 via-emerald-800 to-teal-900 relative overflow-hidden">
+                        {/* Terrain texture */}
+                        <div className="absolute inset-0 opacity-30">
+                          <div className="absolute top-0 left-0 w-full h-1/2 bg-linear-to-b from-emerald-700/40 to-transparent" />
+                          <div className="absolute bottom-0 right-0 w-2/3 h-1/2 bg-linear-to-t from-teal-800/40 to-transparent" />
+                        </div>
+                        {/* Forest patches */}
+                        <div className="absolute top-2 right-4 w-8 h-6 bg-emerald-950/60 rounded-full blur-[2px]" />
+                        <div className="absolute bottom-3 left-2 w-10 h-8 bg-green-950/50 rounded-full blur-[2px]" />
+                        {/* Urban area hint */}
+                        <div className="absolute top-1/2 left-1/3 w-4 h-4 bg-amber-900/30 rounded-sm blur-[1px]" />
+                      </div>
+                    ),
+                  },
+                  {
+                    id: "hybrid",
+                    label: "Hybrid",
+                    preview: (
+                      <div className="w-full h-full bg-linear-to-br from-emerald-900 via-teal-900 to-emerald-950 relative overflow-hidden">
+                        {/* Satellite base with darker overlay */}
+                        <div className="absolute inset-0 bg-linear-to-br from-emerald-800/40 to-transparent" />
+                        {/* Roads overlay */}
+                        <div className="absolute top-1/3 left-0 w-full h-[2px] bg-yellow-300 shadow-sm transform -rotate-12" />
+                        <div className="absolute top-1/2 left-0 w-full h-[3px] bg-orange-400 shadow-sm transform rotate-6" />
+                        <div className="absolute top-0 left-1/3 h-full w-[2px] bg-white/60 shadow-sm" />
+                        {/* Labels hint */}
+                        <div className="absolute top-2 left-2 w-8 h-1 bg-white/80 rounded-full shadow-sm" />
+                        <div className="absolute bottom-3 right-3 w-6 h-1 bg-white/70 rounded-full shadow-sm" />
+                      </div>
+                    ),
+                  },
+                  {
+                    id: "dark",
+                    label: "Dark",
+                    preview: (
+                      <div className="w-full h-full bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 relative overflow-hidden">
+                        {/* Water */}
+                        <div className="absolute bottom-0 right-0 w-14 h-10 bg-slate-800/60 rounded-tl-3xl" />
+                        {/* Roads in dark mode */}
+                        <div className="absolute top-1/3 left-0 w-full h-[2px] bg-slate-600 transform -rotate-12" />
+                        <div className="absolute top-1/2 left-0 w-full h-[2px] bg-slate-500 transform rotate-6" />
+                        <div className="absolute top-0 left-1/3 h-full w-px bg-slate-700" />
+                        {/* Dark mode highlights */}
+                        <div className="absolute top-4 right-4 w-3 h-3 bg-blue-500/20 rounded-full" />
+                        <div className="absolute bottom-3 left-3 w-2 h-2 bg-slate-700 rounded-full" />
+                        {/* Subtle glow */}
+                        <div className="absolute top-1/4 left-1/2 w-12 h-12 bg-blue-500/5 rounded-full blur-xl" />
+                      </div>
+                    ),
+                  },
+                  {
+                    id: "retro",
+                    label: "Retro",
+                    preview: (
+                      <div className="w-full h-full bg-linear-to-br from-[#f4ead5] to-[#e8dcc4] relative overflow-hidden">
+                        {/* Vintage paper texture */}
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_40%,rgba(0,0,0,0.02)_100%)]" />
+                        {/* Roads in sepia tones */}
+                        <div className="absolute top-1/3 left-0 w-full h-[2px] bg-[#c9b896] transform -rotate-12" />
+                        <div className="absolute top-1/2 left-0 w-full h-[3px] bg-[#b5a485] transform rotate-6" />
+                        <div className="absolute top-0 left-1/4 h-full w-[2px] bg-[#d4c5a9]" />
+                        {/* Vintage map elements */}
+                        <div className="absolute top-3 right-3 w-5 h-5 bg-[#c2ab85]/40 rounded-full" />
+                        <div className="absolute bottom-2 left-2 w-4 h-4 bg-[#a89674]/30 rounded-sm" />
+                        {/* Aged effect */}
+                        <div className="absolute inset-0 bg-linear-to-tr from-amber-900/5 to-transparent" />
+                      </div>
+                    ),
+                  },
+                ].map((theme) => (
                   <button
-                    key={theme}
+                    key={theme.id}
                     onClick={() => {
-                      setMapTheme(theme);
-                      setShowThemeMenu(false);
+                      setMapTheme(
+                        theme.id as
+                          | "standard"
+                          | "satellite"
+                          | "hybrid"
+                          | "dark"
+                          | "retro",
+                      );
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center justify-between group ${
-                      mapTheme === theme
-                        ? "bg-blue-50 text-blue-700 font-medium"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
+                    className={`flex flex-col items-center gap-2 group transition-all`}
                   >
-                    <span className="capitalize">{theme}</span>
-                    {mapTheme === theme && (
-                      <Check className="w-4 h-4 text-blue-600" />
-                    )}
+                    <div
+                      className={`relative w-full aspect-4/3 rounded-xl overflow-hidden shadow-sm border-2 transition-all duration-200 ${
+                        mapTheme === theme.id
+                          ? "border-blue-600 ring-2 ring-blue-100 scale-105"
+                          : "border-gray-200 group-hover:border-gray-300 group-hover:shadow-md"
+                      }`}
+                    >
+                      {theme.preview}
+                      {mapTheme === theme.id && (
+                        <div className="absolute inset-0 bg-blue-600/10 flex items-center justify-center">
+                          <div className="bg-blue-600 rounded-full p-0.5 shadow-md">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <span
+                      className={`text-xs font-medium transition-colors ${
+                        mapTheme === theme.id
+                          ? "text-blue-600"
+                          : "text-gray-600 group-hover:text-gray-900"
+                      }`}
+                    >
+                      {theme.label}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
           )}
+
+          {/* Toggle Button */}
+          <button
+            className={`p-3 rounded-full shadow-lg border transition-all duration-300 ${
+              showThemeMenu
+                ? "bg-gray-900 border-gray-900 text-white rotate-90"
+                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+            }`}
+            onClick={() => setShowThemeMenu(!showThemeMenu)}
+            title="Change Map Style"
+          >
+            <Layers className="w-5 h-5" />
+          </button>
         </div>
       )}
 
