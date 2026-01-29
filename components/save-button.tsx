@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   Heart,
   Bookmark,
   Star,
+  Flag,
+  Briefcase,
   Plus,
   Check,
   MapPin,
@@ -49,35 +51,95 @@ export function SaveButton({
 }: SaveButtonProps) {
   const { data: session } = useSession();
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Mock states for saved lists
   const [savedLists, setSavedLists] = useState({
     favorites: false,
     wantToGo: false,
     starred: false,
+    travelPlans: false,
+    savedPlaces: false,
   });
 
   const isAnySaved = Object.values(savedLists).some(Boolean);
 
-  const handleToggleList = (list: keyof typeof savedLists) => {
+  // Fetch saved status when component mounts or session changes
+  useEffect(() => {
+    if (session?.user) {
+      fetchSavedStatus();
+    }
+  }, [session, restaurantId]);
+
+  const fetchSavedStatus = async () => {
+    try {
+      const response = await fetch(`/api/saved/${restaurantId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSavedLists(
+          data.savedLists || {
+            favorites: false,
+            wantToGo: false,
+            starred: false,
+            travelPlans: false,
+            savedPlaces: false,
+          },
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching saved status:", error);
+    }
+  };
+
+  const handleToggleList = async (list: keyof typeof savedLists) => {
     if (!session) {
       setShowLoginDialog(true);
       return;
     }
 
-    setSavedLists((prev) => {
-      const newState = { ...prev, [list]: !prev[list] };
-      const action = newState[list] ? "Saved to" : "Removed from";
-      const listName =
-        list === "favorites"
-          ? "Favorites"
-          : list === "wantToGo"
-            ? "Want to go"
-            : "Starred places";
+    setIsLoading(true);
+    const newValue = !savedLists[list];
 
-      toast.success(`${action} ${listName}`);
-      return newState;
-    });
+    // Optimistic update
+    setSavedLists((prev) => ({ ...prev, [list]: newValue }));
+
+    try {
+      const response = await fetch("/api/saved", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          restaurantId,
+          restaurantName,
+          listType: list,
+          action: newValue ? "add" : "remove",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save");
+      }
+
+      const data = await response.json();
+
+      const listNames: Record<string, string> = {
+        favorites: "Favorites",
+        wantToGo: "Want to go",
+        starred: "Starred places",
+        travelPlans: "Travel plans",
+        savedPlaces: "Saved places",
+      };
+
+      const action = newValue ? "Saved to" : "Removed from";
+      toast.success(`${action} ${listNames[list] || list}`);
+    } catch (error) {
+      // Revert optimistic update on error
+      setSavedLists((prev) => ({ ...prev, [list]: !newValue }));
+      toast.error("Failed to save. Please try again.");
+      console.error("Error saving:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const loginWithGoogle = () => {
@@ -97,6 +159,7 @@ export function SaveButton({
                 setShowLoginDialog(true);
               }
             }}
+            disabled={isLoading}
           >
             {isAnySaved ? (
               <Bookmark className="h-4 w-4 fill-current" />
@@ -108,44 +171,141 @@ export function SaveButton({
         </DropdownMenuTrigger>
 
         {session && (
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Save to list</DropdownMenuLabel>
-            <DropdownMenuSeparator />
+          <DropdownMenuContent
+            align="end"
+            className="w-64 p-2 rounded-2xl shadow-xl border-gray-100"
+          >
+            <DropdownMenuLabel className="px-3 py-2 text-sm font-semibold text-gray-900">
+              Save in your lists
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="my-1" />
+
             <DropdownMenuCheckboxItem
               checked={savedLists.favorites}
               onCheckedChange={() => handleToggleList("favorites")}
-              className="gap-2"
+              disabled={isLoading}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
-              <Heart
-                className={`h-4 w-4 ${savedLists.favorites ? "fill-red-500 text-red-500" : "text-gray-400"}`}
-              />
-              <span>Favorites</span>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${savedLists.favorites ? "bg-red-50" : "bg-gray-50 text-gray-400"}`}
+              >
+                <Heart
+                  className={`h-4.5 w-4.5 ${savedLists.favorites ? "fill-red-500 text-red-500" : ""}`}
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-900 leading-tight">
+                  Favorites
+                </span>
+                <span className="text-[10px] text-gray-400 font-normal">
+                  Private
+                </span>
+              </div>
             </DropdownMenuCheckboxItem>
+
             <DropdownMenuCheckboxItem
               checked={savedLists.wantToGo}
               onCheckedChange={() => handleToggleList("wantToGo")}
-              className="gap-2"
+              disabled={isLoading}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
-              <MapPin
-                className={`h-4 w-4 ${savedLists.wantToGo ? "fill-blue-500 text-blue-500" : "text-gray-400"}`}
-              />
-              <span>Want to go</span>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${savedLists.wantToGo ? "bg-green-50" : "bg-gray-50 text-gray-400"}`}
+              >
+                <Flag
+                  className={`h-4.5 w-4.5 ${savedLists.wantToGo ? "fill-green-600 text-green-600" : ""}`}
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-900 leading-tight">
+                  Want to go
+                </span>
+                <span className="text-[10px] text-gray-400 font-normal">
+                  Private
+                </span>
+              </div>
             </DropdownMenuCheckboxItem>
+
             <DropdownMenuCheckboxItem
               checked={savedLists.starred}
               onCheckedChange={() => handleToggleList("starred")}
-              className="gap-2"
+              disabled={isLoading}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
-              <Star
-                className={`h-4 w-4 ${savedLists.starred ? "fill-yellow-500 text-yellow-500" : "text-gray-400"}`}
-              />
-              <span>Starred places</span>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${savedLists.starred ? "bg-yellow-50" : "bg-gray-50 text-gray-400"}`}
+              >
+                <Star
+                  className={`h-4.5 w-4.5 ${savedLists.starred ? "fill-yellow-500 text-yellow-500" : ""}`}
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-900 leading-tight">
+                  Starred places
+                </span>
+                <span className="text-[10px] text-gray-400 font-normal">
+                  Private
+                </span>
+              </div>
             </DropdownMenuCheckboxItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 text-blue-600 focus:text-blue-700 cursor-pointer">
-              <Plus className="h-4 w-4" />
-              <span>New list</span>
-            </DropdownMenuItem>
+
+            <DropdownMenuCheckboxItem
+              checked={savedLists.travelPlans}
+              onCheckedChange={() => handleToggleList("travelPlans")}
+              disabled={isLoading}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${savedLists.travelPlans ? "bg-cyan-50" : "bg-gray-50 text-gray-400"}`}
+              >
+                <Briefcase
+                  className={`h-4.5 w-4.5 ${savedLists.travelPlans ? "fill-cyan-600 text-cyan-600" : ""}`}
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-900 leading-tight">
+                  Travel plans
+                </span>
+                <span className="text-[10px] text-gray-400 font-normal">
+                  Private
+                </span>
+              </div>
+            </DropdownMenuCheckboxItem>
+
+            <DropdownMenuCheckboxItem
+              checked={savedLists.savedPlaces}
+              onCheckedChange={() => handleToggleList("savedPlaces")}
+              disabled={isLoading}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${savedLists.savedPlaces ? "bg-blue-50" : "bg-gray-50 text-gray-400"}`}
+              >
+                <Bookmark
+                  className={`h-4.5 w-4.5 ${savedLists.savedPlaces ? "fill-blue-600 text-blue-600" : ""}`}
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-900 leading-tight">
+                  Saved places
+                </span>
+                <span className="text-[10px] text-gray-400 font-normal">
+                  Private
+                </span>
+              </div>
+            </DropdownMenuCheckboxItem>
+
+            <DropdownMenuSeparator className="my-1" />
+
+            <div className="p-1">
+              <Button
+                variant="ghost"
+                className="w-full justify-center gap-2 h-10 rounded-xl text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-sm font-bold border border-transparent hover:border-blue-100 transition-all"
+              >
+                <Plus className="h-4 w-4" />
+                New list
+              </Button>
+            </div>
           </DropdownMenuContent>
         )}
       </DropdownMenu>
