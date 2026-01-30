@@ -13,6 +13,7 @@ interface WheelComponentProps {
   upDuration?: number;
   downDuration?: number;
   fontFamily?: string;
+  volume?: number; // 0 to 1
 }
 
 const WheelComponent = ({
@@ -28,9 +29,14 @@ const WheelComponent = ({
   upDuration = 100,
   downDuration = 1000,
   fontFamily = "proxima-nova",
+  volume = 0.5,
 }: WheelComponentProps) => {
   const [isFinished, setFinished] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // For sound effects
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const lastBleepIdx = useRef<number>(-1);
 
   // Ref-based state to avoid re-renders during animation and stale closures
   const stateRef = useRef({
@@ -60,8 +66,42 @@ const WheelComponent = ({
       if (stateRef.current.timerHandle) {
         clearInterval(stateRef.current.timerHandle);
       }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
     };
   }, []);
+
+  const playClickSound = () => {
+    if (volume <= 0) return;
+
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
+      }
+
+      const ctx = audioContextRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
+
+      gain.gain.setValueAtTime(volume * 0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+    } catch (e) {
+      console.warn("Audio context failed to start:", e);
+    }
+  };
 
   const wheelInit = () => {
     wheelDraw();
@@ -150,12 +190,24 @@ const WheelComponent = ({
     ctx.lineTo(centerX, centerY - 70);
     ctx.closePath();
     ctx.fill();
+
     const change = stateRef.current.angleCurrent + Math.PI / 2;
     let i =
       segments.length -
       Math.floor((change / (Math.PI * 2)) * segments.length) -
       1;
     if (i < 0) i = i + segments.length;
+
+    // Play sound if index changed
+    if (
+      i !== lastBleepIdx.current &&
+      stateRef.current.isStarted &&
+      !isFinished
+    ) {
+      playClickSound();
+      lastBleepIdx.current = i;
+    }
+
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = primaryColor;
