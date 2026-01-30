@@ -17,6 +17,7 @@ import { GoogleMap } from "@/components/google-map";
 import { RestaurantDetails } from "@/components/restaurant-details";
 import { UserMenu } from "@/components/UserMenu";
 import { WelcomeDialog } from "@/components/welcome-dialog";
+import { DecisionWheel } from "@/components/decision-wheel";
 
 const DEFAULT_CENTER: Location = {
   lat: 3.139, // Kuala Lumpur center
@@ -305,6 +306,11 @@ export default function Home() {
                 area. Click "Clear & Near Me" to reset.
               </p>
             </div>
+
+            <DecisionWheel
+              restaurants={filteredRestaurants}
+              onSelect={handleRestaurantClick}
+            />
 
             <Button
               variant="secondary"

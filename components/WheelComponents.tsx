@@ -162,11 +162,27 @@ const WheelComponent = ({
     ctx.font = "bold 1.5em " + fontFamily;
     stateRef.current.currentSegment = segments[i];
     if (stateRef.current.isStarted) {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = primaryColor;
+      ctx.font = "bold 2em " + fontFamily;
+
+      // Draw result with a subtle glow/shadow
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = "rgba(0,0,0,0.2)";
       ctx.fillText(
         stateRef.current.currentSegment,
-        centerX + 10,
-        centerY + size + 50,
+        centerX,
+        centerY + size + 85,
       );
+
+      // Draw "Selected:" prefix
+      ctx.font = "italic 1.1em " + fontFamily;
+      ctx.fillStyle = "#666";
+      ctx.shadowBlur = 0;
+      ctx.fillText("You should eat at:", centerX, centerY + size + 40);
+      ctx.restore();
     }
   };
 
@@ -246,14 +262,16 @@ const WheelComponent = ({
   };
 
   return (
-    <div id="wheel" style={{ width: "100%" }}>
+    <div id="wheel" className="w-full flex justify-center">
       <canvas
         ref={canvasRef}
         id="canvas"
         width="600"
-        height="600"
+        height="750"
         style={{
           pointerEvents: isFinished && isOnlyOnce ? "none" : "auto",
+          maxWidth: "100%",
+          height: "auto",
         }}
         onClick={spin}
       />
