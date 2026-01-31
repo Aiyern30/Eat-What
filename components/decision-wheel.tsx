@@ -109,17 +109,20 @@ const THEMES = {
 export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
   const [open, setOpen] = useState(false);
   const [volume, setVolume] = useState(0.5);
-  const [spinDuration, setSpinDuration] = useState("fast"); // fast, normal, slow
+  const [spinTime, setSpinTime] = useState(10); // 5s to 20s
   const [theme, setTheme] = useState<keyof typeof THEMES>("night");
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [remainingTime, setRemainingTime] = useState(0);
+  const [spinStartTime, setSpinStartTime] = useState<number | null>(null);
 
   // Load settings from localStorage
   useEffect(() => {
     const savedVolume = localStorage.getItem("wheel-volume");
-    const savedDuration = localStorage.getItem("wheel-duration");
+    const savedTime = localStorage.getItem("wheel-time");
     const savedTheme = localStorage.getItem("wheel-theme");
 
     if (savedVolume) setVolume(parseFloat(savedVolume));
-    if (savedDuration) setSpinDuration(savedDuration);
+    if (savedTime) setSpinTime(parseInt(savedTime));
     if (savedTheme && savedTheme in THEMES)
       setTheme(savedTheme as keyof typeof THEMES);
   }, []);
@@ -127,9 +130,9 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
   // Save settings to localStorage
   useEffect(() => {
     localStorage.setItem("wheel-volume", volume.toString());
-    localStorage.setItem("wheel-duration", spinDuration);
+    localStorage.setItem("wheel-time", spinTime.toString());
     localStorage.setItem("wheel-theme", theme);
-  }, [volume, spinDuration, theme]);
+  }, [volume, spinTime, theme]);
 
   if (restaurants.length === 0) return null;
 
@@ -141,19 +144,42 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
   );
 
   const getDurations = () => {
-    switch (spinDuration) {
-      case "fast":
-        return { up: 50, down: 400 };
-      case "slow":
-        return { up: 200, down: 1200 };
-      default:
-        return { up: 100, down: 600 };
-    }
+    // Total time in milliseconds = spinTime * 1000
+    // Total duration factor = upDuration + downDuration
+    // totalTime = segments.length * (upDuration + downDuration)
+    // Let's keep a ratio of 1:5 for up:down
+    const totalFactor = (spinTime * 1000) / segments.length;
+    const up = totalFactor * (1 / 6);
+    const down = totalFactor * (5 / 6);
+    return { up, down };
   };
 
   const { up: upDuration, down: downDuration } = getDurations();
 
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isSpinning && spinStartTime) {
+      timer = setInterval(() => {
+        const elapsed = (Date.now() - spinStartTime) / 1000;
+        const left = Math.max(0, Math.ceil(spinTime - elapsed));
+        setRemainingTime(left);
+        if (left === 0) {
+          setIsSpinning(false);
+        }
+      }, 100);
+    }
+    return () => clearInterval(timer);
+  }, [isSpinning, spinStartTime, spinTime]);
+
+  const handleSpinStart = () => {
+    setIsSpinning(true);
+    setRemainingTime(spinTime);
+    setSpinStartTime(Date.now());
+  };
+
   const handleFinished = (winner: string) => {
+    setIsSpinning(false);
+    setSpinStartTime(null);
     const selected = data.find((r) => r.name === winner);
     if (selected) {
       setTimeout(() => {
@@ -241,33 +267,28 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
                   />
                 </div>
 
-                {/* Spin Speed */}
+                {/* Spin Duration */}
                 <div className="space-y-4">
-                  <Label className="text-sm font-semibold flex items-center gap-2">
-                    <Timer className="h-4 w-4" />
-                    Spin Velocity
-                  </Label>
-                  <RadioGroup
-                    value={spinDuration}
-                    onValueChange={setSpinDuration}
-                    className="grid grid-cols-3 gap-2"
-                  >
-                    {["fast", "normal", "slow"].map((d) => (
-                      <div key={d}>
-                        <RadioGroupItem
-                          value={d}
-                          id={`speed-${d}`}
-                          className="peer sr-only"
-                        />
-                        <Label
-                          htmlFor={`speed-${d}`}
-                          className="flex items-center justify-center rounded-xl border-2 border-muted bg-white p-2.5 hover:bg-purple-50 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:bg-purple-50/50 peer-data-[state=checked]:text-purple-600 transition-all cursor-pointer text-xs capitalize font-bold shadow-sm"
-                        >
-                          {d}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <Timer className="h-4 w-4" />
+                      Spin Duration
+                    </Label>
+                    <span className="text-xs font-bold bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">
+                      {spinTime}s
+                    </span>
+                  </div>
+                  <Slider
+                    value={[spinTime]}
+                    onValueChange={(vals) => setSpinTime(vals[0])}
+                    min={5}
+                    max={20}
+                    step={1}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-[10px] text-muted-foreground italic">
+                    Adjust how long the wheel spins (5s to 20s)
+                  </p>
                 </div>
 
                 {/* Theme Selection */}
@@ -315,7 +336,15 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
           </div>
         </DialogHeader>
 
-        <div className="flex-1 p-4 flex flex-col items-center justify-between">
+        <div className="flex-1 p-4 flex flex-col items-center justify-between relative">
+          {isSpinning && (
+            <div className="absolute top-8 right-8 z-10 flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-2xl shadow-xl animate-bounce">
+              <Timer className="h-5 w-5 animate-pulse" />
+              <span className="font-black text-xl tabular-nums">
+                {remainingTime}s
+              </span>
+            </div>
+          )}
           <div className="flex justify-center items-center w-full py-4 mt-2 bg-gray-50/50 rounded-[40px] border-2 border-dashed border-gray-200/50 shadow-inner overflow-hidden">
             <div className="scale-[0.75] sm:scale-100 transition-all duration-700 ease-out hover:scale-105 active:scale-95 origin-center">
               <WheelComponent
@@ -331,6 +360,7 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
                 downDuration={downDuration}
                 fontFamily="inherit"
                 volume={volume}
+                onSpinStart={handleSpinStart}
               />
             </div>
           </div>
@@ -353,7 +383,7 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
               <div className="flex items-center gap-1.5">
                 <Timer className="h-3 w-3 text-purple-400" />
                 <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest">
-                  {spinDuration}
+                  {spinTime}s
                 </span>
               </div>
             </div>

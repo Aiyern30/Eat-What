@@ -14,6 +14,7 @@ interface WheelComponentProps {
   downDuration?: number;
   fontFamily?: string;
   volume?: number; // 0 to 1
+  onSpinStart?: () => void;
 }
 
 const WheelComponent = ({
@@ -30,6 +31,7 @@ const WheelComponent = ({
   downDuration = 1000,
   fontFamily = "proxima-nova",
   volume = 0.5,
+  onSpinStart,
 }: WheelComponentProps) => {
   const [isFinished, setFinished] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -50,11 +52,18 @@ const WheelComponent = ({
     maxSpeed: Math.PI / segments.length,
   });
 
-  const timerDelay = segments.length;
-  const upTime = segments.length * upDuration;
-  const downTime = segments.length * downDuration;
   const centerX = 300;
   const centerY = 300;
+
+  const internalStateRef = useRef({
+    upTime: segments.length * upDuration,
+    downTime: segments.length * downDuration,
+  });
+
+  useEffect(() => {
+    internalStateRef.current.upTime = segments.length * upDuration;
+    internalStateRef.current.downTime = segments.length * downDuration;
+  }, [segments.length, upDuration, downDuration]);
 
   useEffect(() => {
     stateRef.current.maxSpeed = Math.PI / segments.length;
@@ -222,18 +231,19 @@ const WheelComponent = ({
 
       // Draw result with a subtle glow/shadow
       ctx.shadowBlur = 10;
-      ctx.shadowColor = "rgba(0,0,0,0.15)";
+      ctx.shadowColor = "rgba(0,0,0,0.2)";
+      ctx.font = "bold 2.5rem " + fontFamily;
       ctx.fillText(
         stateRef.current.currentSegment,
         centerX,
-        centerY + size + 70,
+        centerY + size + 90,
       );
 
       // Draw "Selected:" prefix
-      ctx.font = "italic 1em " + fontFamily;
+      ctx.font = "italic 1.2rem " + fontFamily;
       ctx.fillStyle = "#666";
       ctx.shadowBlur = 0;
-      ctx.fillText("You should eat at:", centerX, centerY + size + 35);
+      ctx.fillText("You should eat at:", centerX, centerY + size + 45);
       ctx.restore();
     }
   };
@@ -256,16 +266,18 @@ const WheelComponent = ({
     if (isFinished && isOnlyOnce) return;
 
     stateRef.current.isStarted = true;
+    onSpinStart?.();
     if (!stateRef.current.timerHandle) {
       stateRef.current.spinStart = new Date().getTime();
       stateRef.current.frames = 0;
-      stateRef.current.timerHandle = setInterval(onTimerTick, timerDelay);
+      stateRef.current.timerHandle = setInterval(onTimerTick, segments.length);
     }
   };
 
   const onTimerTick = () => {
     stateRef.current.frames++;
     wheelDraw();
+    const { upTime, downTime } = internalStateRef.current;
     const duration = new Date().getTime() - stateRef.current.spinStart;
     let progress = 0;
     let finished = false;
@@ -274,24 +286,25 @@ const WheelComponent = ({
       stateRef.current.angleDelta =
         stateRef.current.maxSpeed * Math.sin((progress * Math.PI) / 2);
     } else {
+      const decelerationDuration = duration - upTime;
       if (winningSegment) {
         if (
           stateRef.current.currentSegment === winningSegment &&
           stateRef.current.frames > segments.length
         ) {
-          progress = duration / upTime;
+          progress = decelerationDuration / downTime;
           stateRef.current.angleDelta =
             stateRef.current.maxSpeed *
             Math.sin((progress * Math.PI) / 2 + Math.PI / 2);
           progress = 1;
         } else {
-          progress = duration / downTime;
+          progress = decelerationDuration / downTime;
           stateRef.current.angleDelta =
             stateRef.current.maxSpeed *
             Math.sin((progress * Math.PI) / 2 + Math.PI / 2);
         }
       } else {
-        progress = duration / downTime;
+        progress = decelerationDuration / downTime;
         stateRef.current.angleDelta =
           stateRef.current.maxSpeed *
           Math.sin((progress * Math.PI) / 2 + Math.PI / 2);
