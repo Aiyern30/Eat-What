@@ -114,6 +114,9 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
   const [spinStartTime, setSpinStartTime] = useState<number | null>(null);
+  const [shuffledRestaurants, setShuffledRestaurants] = useState<Restaurant[]>(
+    [],
+  );
 
   // Load settings from localStorage
   useEffect(() => {
@@ -150,10 +153,26 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
     return () => clearInterval(timer);
   }, [isSpinning, spinStartTime, spinTime]);
 
+  // Shuffle restaurants when dialog opens
+  useEffect(() => {
+    if (open && restaurants.length > 0) {
+      // Fisher-Yates shuffle algorithm
+      const shuffled = [...restaurants.slice(0, 50)];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      setShuffledRestaurants(shuffled);
+    }
+  }, [open, restaurants]);
+
   // Early return AFTER all hooks
   if (restaurants.length === 0) return null;
 
-  const data = restaurants.slice(0, 50);
+  const data =
+    shuffledRestaurants.length > 0
+      ? shuffledRestaurants
+      : restaurants.slice(0, 50);
   const segments = data.map((r) => r.name);
   const wheelColors = Array.from(
     { length: segments.length },
