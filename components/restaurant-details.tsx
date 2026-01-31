@@ -34,6 +34,8 @@ import {
   X,
   Copy,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Image from "next/image";
 import { formatDistance, isRestaurantOpen } from "@/lib/utils";
@@ -65,13 +67,12 @@ export function RestaurantDetails({
   useEffect(() => {
     if (isOpen && initialRestaurant?.id) {
       setLoading(true);
+      // Reset image index when opening new details
+      setCurrentImageIndex(null);
       // Fetch full details including photos, reviews, website etc.
       getPlaceDetails(initialRestaurant.id)
         .then((fullDetails) => {
           if (fullDetails) {
-            // Merge with initial detail to keep computed fields like distance if needed,
-            // though getPlaceDetails re-returns most info.
-            // We want to preserve 'distance' which we calculated in page.tsx
             setDetails((prev) => ({
               ...fullDetails,
               distance: prev?.distance || initialRestaurant.distance,
@@ -80,14 +81,14 @@ export function RestaurantDetails({
         })
         .catch((err) => {
           console.error("Failed to fetch details:", err);
-          // Fallback to initial restaurant data if fetch fails
           setDetails(initialRestaurant);
         })
         .finally(() => {
           setLoading(false);
         });
-    } else {
-      setDetails(initialRestaurant);
+    } else if (!isOpen) {
+      // Clear image when closing sheet
+      setCurrentImageIndex(null);
     }
   }, [isOpen, initialRestaurant, getPlaceDetails]);
 
@@ -508,73 +509,75 @@ export function RestaurantDetails({
         </SheetContent>
       </Sheet>
 
-      {/* Image Lightbox - Outside Sheet for proper z-index */}
-      {currentImageIndex !== null && details?.photos && (
-        <div
-          className="fixed inset-0 bg-black/95 z-9999 flex items-center justify-center"
-          onClick={() => setCurrentImageIndex(null)}
-          style={{ pointerEvents: "auto" }}
+      {/* Image Lightbox - Using Shadcn Dialog for better reliability */}
+      <Dialog
+        open={currentImageIndex !== null}
+        onOpenChange={(open) => !open && setCurrentImageIndex(null)}
+      >
+        <DialogContent
+          className="max-w-none w-screen h-dvh p-0 bg-black/95 border-none shadow-none gap-0 flex items-center justify-center z-10001 fixed inset-0 translate-x-0 translate-y-0 top-0 left-0 rounded-none sm:max-w-none sm:rounded-none data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100 duration-200"
+          showCloseButton={false}
         >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full z-10"
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentImageIndex(null);
-            }}
-          >
-            <X className="h-6 w-6" />
-          </Button>
+          {currentImageIndex !== null && details?.photos && (
+            <div className="relative w-full h-full flex items-center justify-center">
+              {/* Main Image */}
+              <div
+                className="relative w-full h-full max-w-6xl max-h-[90vh] p-4 flex items-center justify-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Image
+                  src={details.photos[currentImageIndex]}
+                  alt={`${details.name} photo ${currentImageIndex + 1}`}
+                  fill
+                  className="object-contain pointer-events-none"
+                  priority
+                />
+              </div>
 
-          {details.photos.length > 1 && (
-            <>
+              {/* Controls */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 rounded-full h-12 w-12 z-10"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  handlePrevImage();
-                }}
+                className="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full z-10002 w-12 h-12"
+                onClick={() => setCurrentImageIndex(null)}
               >
-                <ChevronDown className="h-8 w-8 rotate-90" />
+                <X className="h-8 w-8" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 rounded-full h-12 w-12 z-10"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  handleNextImage();
-                }}
-              >
-                <ChevronDown className="h-8 w-8 -rotate-90" />
-              </Button>
-            </>
+
+              {details.photos.length > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 rounded-full h-16 w-16 z-10002 bg-black/20 backdrop-blur-sm transition-all"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrevImage();
+                    }}
+                  >
+                    <ChevronLeft className="h-10 w-10" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 rounded-full h-16 w-16 z-10002 bg-black/20 backdrop-blur-sm transition-all"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNextImage();
+                    }}
+                  >
+                    <ChevronRight className="h-10 w-10" />
+                  </Button>
+                </>
+              )}
+
+              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white text-lg font-medium bg-black/50 px-4 py-2 rounded-full z-10002 backdrop-blur-sm pointer-events-none">
+                {currentImageIndex + 1} / {details.photos.length}
+              </div>
+            </div>
           )}
-
-          <div
-            className="relative w-full h-full max-w-6xl max-h-[90vh] p-8"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Image
-              src={details.photos[currentImageIndex]}
-              alt={`${details.name} photo ${currentImageIndex + 1}`}
-              fill
-              className="object-contain"
-            />
-          </div>
-
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 px-3 py-1 rounded-full z-10">
-            {currentImageIndex + 1} / {details.photos.length}
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
