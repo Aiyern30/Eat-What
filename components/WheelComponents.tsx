@@ -218,22 +218,22 @@ const WheelComponent = ({
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillStyle = primaryColor;
-      ctx.font = "bold 2em " + fontFamily;
+      ctx.font = "bold 1.8em " + fontFamily;
 
       // Draw result with a subtle glow/shadow
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = "rgba(0,0,0,0.2)";
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = "rgba(0,0,0,0.15)";
       ctx.fillText(
         stateRef.current.currentSegment,
         centerX,
-        centerY + size + 85,
+        centerY + size + 70,
       );
 
       // Draw "Selected:" prefix
-      ctx.font = "italic 1.1em " + fontFamily;
+      ctx.font = "italic 1em " + fontFamily;
       ctx.fillStyle = "#666";
       ctx.shadowBlur = 0;
-      ctx.fillText("You should eat at:", centerX, centerY + size + 40);
+      ctx.fillText("You should eat at:", centerX, centerY + size + 35);
       ctx.restore();
     }
   };
@@ -319,7 +319,7 @@ const WheelComponent = ({
         ref={canvasRef}
         id="canvas"
         width="600"
-        height="750"
+        height="700"
         style={{
           pointerEvents: isFinished && isOnlyOnce ? "none" : "auto",
           maxWidth: "100%",

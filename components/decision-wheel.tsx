@@ -109,8 +109,8 @@ const THEMES = {
 export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
   const [open, setOpen] = useState(false);
   const [volume, setVolume] = useState(0.5);
-  const [spinDuration, setSpinDuration] = useState("normal"); // fast, normal, slow
-  const [theme, setTheme] = useState<keyof typeof THEMES>("vibrant");
+  const [spinDuration, setSpinDuration] = useState("fast"); // fast, normal, slow
+  const [theme, setTheme] = useState<keyof typeof THEMES>("night");
 
   // Load settings from localStorage
   useEffect(() => {
@@ -174,23 +174,38 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
           Spin to Decide
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] flex flex-col items-center bg-white/95 backdrop-blur-md">
-        <DialogHeader className="w-full relative">
-          <div className="absolute right-0 top-0">
+      <DialogContent className="sm:max-w-[700px] max-h-[95vh] flex flex-col p-0 overflow-hidden bg-white/95 backdrop-blur-md border-none shadow-2xl">
+        <DialogHeader className="p-6 pb-2 border-b bg-white/50 relative shrink-0">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-purple-100 p-2.5 rounded-2xl">
+                <Utensils className="h-6 w-6 text-purple-600" />
+              </div>
+              <div className="text-left">
+                <DialogTitle className="text-2xl font-black text-gray-900 leading-none">
+                  Can't Decide?
+                </DialogTitle>
+                <p className="text-xs text-gray-500 mt-1">
+                  Spin of Fate for your next meal
+                </p>
+              </div>
+            </div>
+
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-purple-100 text-purple-600"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-2 border-purple-200 hover:bg-purple-50 hover:text-purple-700 text-purple-600 font-bold px-4 rounded-xl transition-all"
                 >
-                  <Settings2 className="h-5 w-5" />
+                  <Settings2 className="h-4 w-4" />
+                  Settings
                 </Button>
               </PopoverTrigger>
               <PopoverContent
-                className="w-80 p-6 space-y-6 shadow-2xl rounded-2xl border-purple-100"
-                side="left"
-                align="start"
+                className="w-85 p-6 space-y-6 shadow-2xl rounded-3xl border-purple-100 bg-white/95 backdrop-blur-xl"
+                side="bottom"
+                align="end"
               >
                 <div className="space-y-2">
                   <h4 className="font-bold text-gray-900 flex items-center gap-2">
@@ -198,12 +213,12 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
                     Wheel Settings
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Adjust your spinning experience
+                    Customize your experience
                   </p>
                 </div>
 
                 {/* Volume Control */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-semibold flex items-center gap-2">
                       {volume === 0 ? (
@@ -211,9 +226,9 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
                       ) : (
                         <Volume2 className="h-4 w-4" />
                       )}
-                      Volume
+                      Beep Volume
                     </Label>
-                    <span className="text-xs font-medium text-purple-600">
+                    <span className="text-xs font-bold bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">
                       {Math.round(volume * 100)}%
                     </span>
                   </div>
@@ -227,10 +242,10 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
                 </div>
 
                 {/* Spin Speed */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <Timer className="h-4 w-4" />
-                    Spin Speed
+                    Spin Velocity
                   </Label>
                   <RadioGroup
                     value={spinDuration}
@@ -246,7 +261,7 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
                         />
                         <Label
                           htmlFor={`speed-${d}`}
-                          className="flex items-center justify-center rounded-lg border-2 border-muted bg-white p-2 hover:bg-purple-50 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-600 transition-all cursor-pointer text-xs capitalize font-medium"
+                          className="flex items-center justify-center rounded-xl border-2 border-muted bg-white p-2.5 hover:bg-purple-50 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:bg-purple-50/50 peer-data-[state=checked]:text-purple-600 transition-all cursor-pointer text-xs capitalize font-bold shadow-sm"
                         >
                           {d}
                         </Label>
@@ -256,10 +271,10 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
                 </div>
 
                 {/* Theme Selection */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <Palette className="h-4 w-4" />
-                    Color Theme
+                    Visual Theme
                   </Label>
                   <div className="grid grid-cols-2 gap-2">
                     {(Object.keys(THEMES) as Array<keyof typeof THEMES>).map(
@@ -269,26 +284,26 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
                           variant="outline"
                           size="sm"
                           onClick={() => setTheme(t)}
-                          className={`justify-start gap-2 h-9 px-3 rounded-lg border-2 transition-all ${
+                          className={`justify-start gap-2 h-11 px-3 rounded-xl border-2 transition-all ${
                             theme === t
-                              ? "border-purple-600 bg-purple-50 text-purple-600 shadow-sm"
-                              : "hover:border-purple-200"
+                              ? "border-purple-600 bg-purple-50 text-purple-600 shadow-md"
+                              : "hover:border-purple-200 bg-white"
                           }`}
                         >
-                          <div className="flex -space-x-1.5">
+                          <div className="flex -space-x-1.5 shrink-0">
                             {THEMES[t].slice(0, 3).map((c, i) => (
                               <div
                                 key={i}
-                                className="h-3 w-3 rounded-full ring-1 ring-white"
+                                className="h-3.5 w-3.5 rounded-full ring-2 ring-white shadow-sm"
                                 style={{ backgroundColor: c }}
                               />
                             ))}
                           </div>
-                          <span className="text-xs capitalize font-medium">
+                          <span className="text-xs capitalize font-bold">
                             {t}
                           </span>
                           {theme === t && (
-                            <Check className="h-3 w-3 ml-auto shrink-0" />
+                            <Check className="h-3.5 w-3.5 ml-auto shrink-0" />
                           )}
                         </Button>
                       ),
@@ -298,45 +313,50 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
               </PopoverContent>
             </Popover>
           </div>
-          <DialogTitle className="text-2xl font-black text-center flex items-center justify-center gap-3 text-gray-900 pt-4">
-            <div className="bg-purple-100 p-2 rounded-xl">
-              <Utensils className="h-6 w-6 text-purple-600" />
-            </div>
-            Can't Decide?
-          </DialogTitle>
-          <p className="text-sm text-gray-500 text-center mt-1">
-            Let the Spin of Fate choose your meal!
-          </p>
         </DialogHeader>
 
-        <div className="flex justify-center items-center w-full py-8 mt-4 overflow-hidden bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
-          <div className="scale-[0.85] sm:scale-100 transition-all duration-500 ease-in-out hover:rotate-1">
-            <WheelComponent
-              segments={segments}
-              segColors={wheelColors}
-              onFinished={handleFinished}
-              primaryColor="#7c3aed"
-              contrastColor="white"
-              buttonText="Spin"
-              isOnlyOnce={false}
-              size={250}
-              upDuration={upDuration}
-              downDuration={downDuration}
-              fontFamily="Outfit, sans-serif"
-              volume={volume}
-            />
+        <div className="flex-1 p-4 flex flex-col items-center justify-between">
+          <div className="flex justify-center items-center w-full py-4 mt-2 bg-gray-50/50 rounded-[40px] border-2 border-dashed border-gray-200/50 shadow-inner overflow-hidden">
+            <div className="scale-[0.75] sm:scale-100 transition-all duration-700 ease-out hover:scale-105 active:scale-95 origin-center">
+              <WheelComponent
+                segments={segments}
+                segColors={wheelColors}
+                onFinished={handleFinished}
+                primaryColor="#7c3aed"
+                contrastColor="white"
+                buttonText="Spin"
+                isOnlyOnce={false}
+                size={210}
+                upDuration={upDuration}
+                downDuration={downDuration}
+                fontFamily="inherit"
+                volume={volume}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="w-full flex justify-between items-center px-2 mt-4">
-          <p className="text-[10px] text-muted-foreground italic flex items-center gap-1.5">
-            <Check className="h-3 w-3 text-green-500" />
-            Picking from {data.length} local favorites
-          </p>
-          <div className="flex items-center gap-4 text-[10px] font-bold text-purple-400 uppercase tracking-widest">
-            <span>{theme} theme</span>
-            <span className="h-1 w-1 rounded-full bg-purple-200" />
-            <span>{spinDuration} spin</span>
+          <div className="w-full flex flex-col sm:flex-row justify-between items-center px-4 mt-4 gap-4 mb-2">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-full border border-green-100 shadow-sm">
+              <Check className="h-3.5 w-3.5 text-green-500" />
+              <span className="text-[11px] font-bold text-green-700">
+                Picking from top {data.length} places
+              </span>
+            </div>
+            <div className="flex items-center gap-4 bg-purple-50 px-4 py-1.5 rounded-full border border-purple-100 shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <Palette className="h-3 w-3 text-purple-400" />
+                <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest">
+                  {theme}
+                </span>
+              </div>
+              <div className="h-4 w-px bg-purple-200" />
+              <div className="flex items-center gap-1.5">
+                <Timer className="h-3 w-3 text-purple-400" />
+                <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest">
+                  {spinDuration}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </DialogContent>
