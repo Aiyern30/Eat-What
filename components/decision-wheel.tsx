@@ -134,6 +134,23 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
     localStorage.setItem("wheel-theme", theme);
   }, [volume, spinTime, theme]);
 
+  // Timer effect for countdown
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isSpinning && spinStartTime) {
+      timer = setInterval(() => {
+        const elapsed = (Date.now() - spinStartTime) / 1000;
+        const left = Math.max(0, Math.ceil(spinTime - elapsed));
+        setRemainingTime(left);
+        if (left === 0) {
+          setIsSpinning(false);
+        }
+      }, 100);
+    }
+    return () => clearInterval(timer);
+  }, [isSpinning, spinStartTime, spinTime]);
+
+  // Early return AFTER all hooks
   if (restaurants.length === 0) return null;
 
   const data = restaurants.slice(0, 50);
@@ -155,21 +172,6 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
   };
 
   const { up: upDuration, down: downDuration } = getDurations();
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isSpinning && spinStartTime) {
-      timer = setInterval(() => {
-        const elapsed = (Date.now() - spinStartTime) / 1000;
-        const left = Math.max(0, Math.ceil(spinTime - elapsed));
-        setRemainingTime(left);
-        if (left === 0) {
-          setIsSpinning(false);
-        }
-      }, 100);
-    }
-    return () => clearInterval(timer);
-  }, [isSpinning, spinStartTime, spinTime]);
 
   const handleSpinStart = () => {
     setIsSpinning(true);
@@ -200,7 +202,7 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
           Spin to Decide
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[95vh] flex flex-col p-0 overflow-hidden bg-white/95 backdrop-blur-md border-none shadow-2xl">
+      <DialogContent className="sm:max-w-[850px] max-h-[95vh] flex flex-col p-0 overflow-hidden bg-white/95 backdrop-blur-md border-none shadow-2xl">
         <DialogHeader className="p-6 pb-2 border-b bg-white/50 relative shrink-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -336,17 +338,17 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
           </div>
         </DialogHeader>
 
-        <div className="flex-1 p-4 flex flex-col items-center justify-between relative">
+        <div className="flex-1 p-2 flex flex-col items-center justify-between relative overflow-hidden">
           {isSpinning && (
-            <div className="absolute top-8 right-8 z-10 flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-2xl shadow-xl animate-bounce">
+            <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-2xl shadow-xl animate-bounce">
               <Timer className="h-5 w-5 animate-pulse" />
               <span className="font-black text-xl tabular-nums">
                 {remainingTime}s
               </span>
             </div>
           )}
-          <div className="flex justify-center items-center w-full py-4 mt-2 bg-gray-50/50 rounded-[40px] border-2 border-dashed border-gray-200/50 shadow-inner overflow-hidden">
-            <div className="scale-[0.75] sm:scale-100 transition-all duration-700 ease-out hover:scale-105 active:scale-95 origin-center">
+          <div className="flex justify-center items-center w-full py-4 bg-gray-50/50 rounded-[40px] border-2 border-dashed border-gray-200/50 shadow-inner overflow-hidden">
+            <div className="scale-90 sm:scale-100 transition-all duration-700 ease-out hover:scale-105 active:scale-95 origin-center">
               <WheelComponent
                 segments={segments}
                 segColors={wheelColors}
@@ -355,7 +357,7 @@ export function DecisionWheel({ restaurants, onSelect }: DecisionWheelProps) {
                 contrastColor="white"
                 buttonText="Spin"
                 isOnlyOnce={false}
-                size={210}
+                size={240}
                 upDuration={upDuration}
                 downDuration={downDuration}
                 fontFamily="inherit"

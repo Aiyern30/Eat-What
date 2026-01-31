@@ -26,7 +26,7 @@ const WheelComponent = ({
   contrastColor = "white",
   buttonText = "Spin",
   isOnlyOnce = true,
-  size = 290,
+  size = 240,
   upDuration = 100,
   downDuration = 1000,
   fontFamily = "proxima-nova",
@@ -35,6 +35,8 @@ const WheelComponent = ({
 }: WheelComponentProps) => {
   const [isFinished, setFinished] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [scale, setScale] = useState(1);
 
   // For sound effects
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -52,8 +54,8 @@ const WheelComponent = ({
     maxSpeed: Math.PI / segments.length,
   });
 
-  const centerX = 300;
-  const centerY = 300;
+  const centerX = 350;
+  const centerY = 280;
 
   const internalStateRef = useRef({
     upTime: segments.length * upDuration,
@@ -68,6 +70,22 @@ const WheelComponent = ({
   useEffect(() => {
     stateRef.current.maxSpeed = Math.PI / segments.length;
   }, [segments.length]);
+
+  // Handle responsive scaling
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        const canvasWidth = 700;
+        const newScale = Math.min(1, containerWidth / canvasWidth);
+        setScale(newScale);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     wheelInit();
@@ -162,10 +180,10 @@ const WheelComponent = ({
 
     // Draw a center circle
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 50, 0, PI2, false);
+    ctx.arc(centerX, centerY, 40, 0, PI2, false);
     ctx.closePath();
     ctx.fillStyle = primaryColor;
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 8;
     ctx.strokeStyle = contrastColor;
     ctx.fill();
     ctx.font = "bold 1em " + fontFamily;
@@ -232,18 +250,18 @@ const WheelComponent = ({
       // Draw result with a subtle glow/shadow
       ctx.shadowBlur = 10;
       ctx.shadowColor = "rgba(0,0,0,0.2)";
-      ctx.font = "bold 2.5rem " + fontFamily;
+      ctx.font = "bold 2rem " + fontFamily;
       ctx.fillText(
         stateRef.current.currentSegment,
         centerX,
-        centerY + size + 90,
+        centerY + size + 70,
       );
 
       // Draw "Selected:" prefix
-      ctx.font = "italic 1.2rem " + fontFamily;
+      ctx.font = "italic 1rem " + fontFamily;
       ctx.fillStyle = "#666";
       ctx.shadowBlur = 0;
-      ctx.fillText("You should eat at:", centerX, centerY + size + 45);
+      ctx.fillText("You should eat at:", centerX, centerY + size + 35);
       ctx.restore();
     }
   };
@@ -253,7 +271,7 @@ const WheelComponent = ({
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.clearRect(0, 0, 1000, 800);
+    ctx.clearRect(0, 0, 700, 720);
   };
 
   const wheelDraw = () => {
@@ -327,19 +345,31 @@ const WheelComponent = ({
   };
 
   return (
-    <div id="wheel" className="w-full flex justify-center">
-      <canvas
-        ref={canvasRef}
-        id="canvas"
-        width="600"
-        height="700"
+    <div
+      ref={containerRef}
+      className="w-full flex justify-center items-center overflow-hidden"
+      style={{ padding: "1rem" }}
+    >
+      <div
         style={{
-          pointerEvents: isFinished && isOnlyOnce ? "none" : "auto",
-          maxWidth: "100%",
-          height: "auto",
+          transform: `scale(${scale})`,
+          transformOrigin: "center center",
+          transition: "transform 0.3s ease",
         }}
-        onClick={spin}
-      />
+      >
+        <canvas
+          ref={canvasRef}
+          id="canvas"
+          width="700"
+          height="720"
+          style={{
+            pointerEvents: isFinished && isOnlyOnce ? "none" : "auto",
+            display: "block",
+            cursor: "pointer",
+          }}
+          onClick={spin}
+        />
+      </div>
     </div>
   );
 };
