@@ -288,7 +288,7 @@ export function FilterPanel({
           <SheetHeader>
             <SheetTitle>Filters</SheetTitle>
           </SheetHeader>
-          <div className="mt-6">{filterContent}</div>
+          <div className="mt-6 px-1">{filterContent}</div>
         </SheetContent>
       </Sheet>
     );

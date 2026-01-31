@@ -269,11 +269,14 @@ export default function Home() {
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* Header */}
-      <header className="border-b bg-linear-to-r from-orange-500 to-red-500 px-4 py-4 text-white shadow-md">
+      <header className="border-b bg-linear-to-r from-orange-500 to-red-500 px-4 py-2 md:py-4 text-white shadow-md shrink-0">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h1 className="text-2xl font-bold md:text-3xl flex items-center gap-2">
-              🍽️ Eat What?
+          <div className="mb-2 md:mb-4 flex items-center justify-between gap-4">
+            <h1 className="text-xl font-bold md:text-3xl flex items-center gap-2">
+              🍽️ <span className="hidden sm:inline">Eat What?</span>
+              <span className="sm:hidden font-black tracking-tight">
+                EAT WHAT?
+              </span>
               <span className="hidden md:inline text-sm font-normal text-white/80 opacity-75">
                 - Find food near you
               </span>
@@ -281,75 +284,75 @@ export default function Home() {
             <UserMenu />
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row">
             <div className="relative flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
                 <Input
-                  placeholder="Where do you want to eat? (e.g. Puchong, KLCC...) - Enter to Explore"
+                  placeholder="Where to eat? - Press Enter"
                   value={globalSearchQuery}
                   onChange={(e) => setGlobalSearchQuery(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
-                  className="bg-white pl-10 text-black h-10 shadow-inner"
+                  className="bg-white pl-10 text-black h-9 md:h-10 shadow-inner text-sm"
                 />
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="absolute right-1 top-1 text-gray-400 hover:text-orange-500 h-8"
+                  className="absolute right-1 top-0.5 text-gray-400 hover:text-orange-500 h-8 font-bold"
                   onClick={handleGlobalSearch}
                 >
                   Search
                 </Button>
               </div>
-              <p className="text-[10px] text-white/80 mt-1 pl-1">
-                * Explore Mode: Type a location and press Enter to search that
-                area. Click "Clear & Near Me" to reset.
-              </p>
             </div>
 
-            <DecisionWheel
-              restaurants={filteredRestaurants}
-              onSelect={handleRestaurantClick}
-            />
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <DecisionWheel
+                  restaurants={filteredRestaurants}
+                  onSelect={handleRestaurantClick}
+                />
+              </div>
 
-            <Button
-              variant="secondary"
-              onClick={() => {
-                hasSearchedPlaces.current = false;
-                setGlobalSearchQuery(""); // Clear global search when getting my location
-                setIsExploreMode(false); // Reset to Nearby Mode
-
-                // Immediately disable loading state to allow retry if needed,
-                // but more importantly, if we have a location, force a fresh search!
-                // getCurrentLocation will update 'location', but if it's the same, useEffect might not fire.
-                // So we assume if we are clicking this, we want to REFRESH nearby.
-                getCurrentLocation();
-
-                if (location) {
-                  const radiusInMeters = filters.distance * 1000;
-                  searchNearby(
-                    location.coords,
-                    radiusInMeters,
-                    filters.resultLimit,
-                  );
-                  toast.success("Finding restaurants near you...");
-                }
-              }}
-              disabled={loading || placesLoading}
-              className="whitespace-nowrap h-10 shadow-sm"
-            >
-              {loading || placesLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <MapPin className="mr-2 h-4 w-4" />
-              )}
-              {isExploreMode ? "Clear & Near Me" : "Update GPS"}
-            </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  hasSearchedPlaces.current = false;
+                  setGlobalSearchQuery("");
+                  setIsExploreMode(false);
+                  getCurrentLocation();
+                  if (location) {
+                    const radiusInMeters = filters.distance * 1000;
+                    searchNearby(
+                      location.coords,
+                      radiusInMeters,
+                      filters.resultLimit,
+                    );
+                    toast.success("Finding restaurants near you...");
+                  }
+                }}
+                disabled={loading || placesLoading}
+                className="whitespace-nowrap h-9 md:h-10 shadow-sm flex-1 font-bold"
+              >
+                {loading || placesLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MapPin className="h-4 w-4" />
+                )}
+                <span className="ml-2 hidden sm:inline">
+                  {isExploreMode ? "Clear & Near Me" : "Update GPS"}
+                </span>
+                <span className="ml-1 sm:hidden">
+                  {isExploreMode ? "Clear" : "GPS"}
+                </span>
+              </Button>
+            </div>
           </div>
           {location?.address && !globalSearchQuery && (
-            <p className="mt-2 text-xs text-white/90 flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              Current Location: {location.address}
+            <p className="mt-1 text-[10px] text-white/90 flex items-center gap-1 opacity-80 line-clamp-1">
+              <MapPin className="h-2.5 w-2.5" />
+              {location.address}
             </p>
           )}
         </div>
@@ -413,7 +416,10 @@ export default function Home() {
                   />
                 </div>
               </div>
-              <TabsContent value="map" className="m-0 flex-1">
+              <TabsContent
+                value="map"
+                className="m-0 flex-1 relative overflow-hidden"
+              >
                 <GoogleMap
                   center={mapCenter}
                   restaurants={filteredRestaurants}
@@ -421,11 +427,13 @@ export default function Home() {
                   userLocation={location?.coords}
                 />
               </TabsContent>
-              <TabsContent value="list" className="m-0 flex-1">
-                <RestaurantList
-                  restaurants={filteredRestaurants}
-                  onRestaurantClick={handleRestaurantClick}
-                />
+              <TabsContent value="list" className="m-0 flex-1 overflow-hidden">
+                <div className="h-full flex flex-col">
+                  <RestaurantList
+                    restaurants={filteredRestaurants}
+                    onRestaurantClick={handleRestaurantClick}
+                  />
+                </div>
               </TabsContent>
             </Tabs>
           ) : (
