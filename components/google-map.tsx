@@ -7,7 +7,7 @@ import {
   InfoWindowF,
   CircleF,
 } from "@react-google-maps/api";
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Restaurant, Location } from "@/types/restaurant";
 import { MAP_STYLES } from "@/data/map-styles";
 import { Spinner } from "@/components/ui/spinner";
@@ -42,6 +42,7 @@ interface GoogleMapProps {
   minimal?: boolean;
   searchRadius?: number; // in meters
   showRadius?: boolean;
+  onPlacesChanged?: (places: Restaurant[]) => void;
 }
 
 const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = [
@@ -175,6 +176,7 @@ export function GoogleMap({
   minimal,
   searchRadius = 5000,
   showRadius = false,
+  onPlacesChanged,
 }: GoogleMapProps) {
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<Restaurant | null>(null);
@@ -307,6 +309,13 @@ export function GoogleMap({
     },
     [center, restaurants, searchRadius],
   );
+
+  // Sync displayed places back to parent if needed (for list view update)
+  useEffect(() => {
+    if (onPlacesChanged) {
+      onPlacesChanged(displayedPlaces);
+    }
+  }, [displayedPlaces, onPlacesChanged]);
 
   const handleMarkerClick = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
@@ -517,11 +526,22 @@ export function GoogleMap({
                     <span className="text-gray-300">|</span>
                     <div className="text-gray-600">
                       {(() => {
-                        const level = hoveredRestaurant.priceLevel;
+                        const level = hoveredRestaurant.priceLevel || 0;
+                        const type = (hoveredRestaurant as any).type;
+
+                        // Handle hotels specific pricing display
+                        if (type === "hotel" || type === "lodging") {
+                          if (level === 1) return "Budget";
+                          if (level === 2) return "Moderate";
+                          if (level === 3) return "Luxury";
+                          if (level >= 4) return "Premium";
+                          return "Price Varies";
+                        }
+
                         if (level === 1) return "RM 10–20";
                         if (level === 2) return "RM 20–40";
                         if (level === 3) return "RM 40–100";
-                        if (level && level >= 4) return "RM 100+";
+                        if (level >= 4) return "RM 100+";
 
                         const range = hoveredRestaurant.priceRange;
                         if (range?.length === 1) return "RM 10–20";
@@ -593,11 +613,22 @@ export function GoogleMap({
                   <span className="text-xs text-gray-400">•</span>
                   <span className="text-xs font-medium text-gray-700">
                     {(() => {
-                      const level = selectedRestaurant.priceLevel;
+                      const level = selectedRestaurant.priceLevel || 0;
+                      const type = (selectedRestaurant as any).type;
+
+                      // Handle hotels specific pricing display
+                      if (type === "hotel" || type === "lodging") {
+                        if (level === 1) return "Budget";
+                        if (level === 2) return "Moderate";
+                        if (level === 3) return "Luxury";
+                        if (level >= 4) return "Premium";
+                        return "Price Varies";
+                      }
+
                       if (level === 1) return "RM 10–20";
                       if (level === 2) return "RM 20–40";
                       if (level === 3) return "RM 40–100";
-                      if (level && level >= 4) return "RM 100+";
+                      if (level >= 4) return "RM 100+";
 
                       const range = selectedRestaurant.priceRange;
                       if (range?.length === 1) return "RM 10–20";

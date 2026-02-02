@@ -266,6 +266,29 @@ export default function Home() {
     toast.success("Refreshing restaurant list...");
   };
 
+  const [mapDisplayedRestaurants, setMapDisplayedRestaurants] = useState<
+    Restaurant[]
+  >([]);
+
+  // Initialize map displayed restaurants with filtered list initially
+  useEffect(() => {
+    if (
+      mapDisplayedRestaurants.length === 0 &&
+      filteredRestaurants.length > 0
+    ) {
+      setMapDisplayedRestaurants(filteredRestaurants);
+    }
+  }, [filteredRestaurants]);
+
+  const handleMapPlacesChanged = useCallback((places: Restaurant[]) => {
+    setMapDisplayedRestaurants(places);
+  }, []);
+
+  const displayedList =
+    mapDisplayedRestaurants.length > 0
+      ? mapDisplayedRestaurants
+      : filteredRestaurants;
+
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* Header */}
@@ -375,8 +398,8 @@ export default function Home() {
               />
               <div className="mt-4 rounded-lg bg-muted p-3 text-sm">
                 <p className="font-medium">
-                  {filteredRestaurants.length} restaurant
-                  {filteredRestaurants.length !== 1 ? "s" : ""} found
+                  {displayedList.length} Result
+                  {displayedList.length !== 1 ? "s" : ""} found
                 </p>
               </div>
             </div>
@@ -401,7 +424,7 @@ export default function Home() {
                     </TabsTrigger>
                     <TabsTrigger value="list" className="gap-2">
                       <List className="h-4 w-4" />
-                      List ({filteredRestaurants.length})
+                      List ({displayedList.length})
                     </TabsTrigger>
                   </TabsList>
                   <FilterPanel
@@ -425,12 +448,13 @@ export default function Home() {
                   restaurants={filteredRestaurants}
                   onRestaurantClick={handleRestaurantClick}
                   userLocation={location?.coords}
+                  onPlacesChanged={handleMapPlacesChanged}
                 />
               </TabsContent>
               <TabsContent value="list" className="m-0 flex-1 overflow-hidden">
                 <div className="h-full flex flex-col">
                   <RestaurantList
-                    restaurants={filteredRestaurants}
+                    restaurants={displayedList}
                     onRestaurantClick={handleRestaurantClick}
                   />
                 </div>
@@ -445,17 +469,18 @@ export default function Home() {
                   restaurants={filteredRestaurants}
                   onRestaurantClick={handleRestaurantClick}
                   userLocation={location?.coords}
+                  onPlacesChanged={handleMapPlacesChanged}
                 />
               </div>
               <div className="h-full w-96 border-l bg-card">
                 <div className="border-b p-4">
                   <h2 className="font-semibold">
-                    {filteredRestaurants.length} Restaurant
-                    {filteredRestaurants.length !== 1 ? "s" : ""}
+                    {displayedList.length} Result
+                    {displayedList.length !== 1 ? "s" : ""}
                   </h2>
                 </div>
                 <RestaurantList
-                  restaurants={filteredRestaurants}
+                  restaurants={displayedList}
                   onRestaurantClick={handleRestaurantClick}
                 />
               </div>
