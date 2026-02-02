@@ -11,11 +11,27 @@ import { useState, useMemo, useRef, useCallback } from "react";
 import { Restaurant, Location } from "@/types/restaurant";
 import { MAP_STYLES } from "@/data/map-styles";
 import { Spinner } from "@/components/ui/spinner";
-import { MapPin, Star, Navigation, Footprints } from "lucide-react";
+import {
+  MapPin,
+  Star,
+  Navigation,
+  Footprints,
+  Maximize2,
+  Minimize2,
+  X,
+  Utensils,
+  BedDouble,
+  Camera,
+  Landmark,
+  TrainFront,
+  Pill,
+  CircleDollarSign,
+} from "lucide-react";
 import Image from "next/image";
 import { MapTheme } from "@/types/map";
 import { MapThemeSelector } from "@/components/map-theme-selector";
 import { SaveButton } from "@/components/save-button";
+import { cn } from "@/lib/utils";
 
 interface GoogleMapProps {
   center: Location;
@@ -32,23 +48,91 @@ const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = [
   "places",
 ];
 
+// Categories Configuration
+const CATEGORIES = [
+  {
+    id: "restaurant",
+    label: "Restaurants",
+    icon: Utensils,
+    type: "restaurant",
+  },
+  { id: "hotel", label: "Hotels", icon: BedDouble, type: "lodging" },
+  {
+    id: "attraction",
+    label: "Things to do",
+    icon: Camera,
+    type: "tourist_attraction",
+  },
+  { id: "museum", label: "Museums", icon: Landmark, type: "museum" },
+  {
+    id: "transit",
+    label: "Transit",
+    icon: TrainFront,
+    type: "transit_station",
+  },
+  { id: "pharmacy", label: "Pharmacies", icon: Pill, type: "pharmacy" },
+  { id: "atm", label: "ATMs", icon: CircleDollarSign, type: "atm" },
+] as const;
+
 // Custom map styles are imported from @/data/map-styles
 
-// Get marker color based on rating
-const getMarkerColor = (rating: number): string => {
+// Get marker color based on rating or type
+const getMarkerColor = (
+  rating: number,
+  type: string = "restaurant",
+): string => {
+  if (type === "hotel" || type === "lodging") return "#ec4899"; // pink for hotels
+
   if (rating >= 4.5) return "#10b981"; // emerald
   if (rating >= 4.0) return "#3b82f6"; // blue
   if (rating >= 3.5) return "#f59e0b"; // amber
   return "#ef4444"; // red
 };
 
+const getCategoryIcon = (type: string) => {
+  switch (type) {
+    case "hotel":
+    case "lodging":
+      return { path: "M2 22v-5l5-4 5 4v5M12 22v-9 M2 12h10", color: "#ec4899" };
+    default:
+      return null;
+  }
+};
+
 // Create custom marker SVG
-const createMarkerIcon = (rating: number, isSelected: boolean = false) => {
-  const color = getMarkerColor(rating);
-  const size = isSelected ? 44 : 36;
+const createMarkerIcon = (
+  rating: number,
+  isSelected: boolean = false,
+  type: string = "restaurant",
+) => {
+  const color = getMarkerColor(rating, type);
+  const size = isSelected ? 48 : 40;
+
+  // Custom Icon inside marker
+  let iconContent = `<circle cx="22" cy="22" r="14" fill="${color}"/>
+                     <circle cx="22" cy="22" r="10" fill="white"/>
+                     <text x="22" y="26" text-anchor="middle" font-size="10" font-weight="bold" fill="${color}">
+                       ${rating.toFixed(1)}
+                     </text>`;
+
+  if (type === "hotel" || type === "lodging") {
+    // Bed Icon
+    iconContent = `<circle cx="22" cy="22" r="16" fill="${color}"/>
+                   <g transform="translate(13, 13) scale(0.8)">
+                     <path d="M2 4v16M22 4v16M2 12h20M2 8h20" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+                     <path d="M12 4v8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                   </g>`;
+    // Simplify bed icon for SVG data URI manually to ensure it displays well
+    iconContent = `<circle cx="22" cy="22" r="16" fill="${color}"/>
+                   <rect x="12" y="14" width="20" height="12" rx="2" fill="white"/>
+                   <path d="M12 20h20" stroke="${color}" stroke-width="2"/>
+                   <circle cx="16" cy="17" r="1.5" fill="${color}"/>
+                   <circle cx="28" cy="17" r="1.5" fill="${color}"/>`;
+  }
+
   const pulseAnimation = isSelected
     ? `<circle cx="22" cy="22" r="18" fill="${color}" opacity="0.3">
-         <animate attributeName="r" from="18" to="26" dur="1.5s" repeatCount="indefinite"/>
+         <animate attributeName="r" from="18" to="28" dur="1.5s" repeatCount="indefinite"/>
          <animate attributeName="opacity" from="0.3" to="0" dur="1.5s" repeatCount="indefinite"/>
        </circle>`
     : "";
@@ -60,11 +144,7 @@ const createMarkerIcon = (rating: number, isSelected: boolean = false) => {
       <svg width="${size}" height="${size}" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
         ${pulseAnimation}
         <g filter="url(#shadow)">
-          <circle cx="22" cy="22" r="14" fill="${color}"/>
-          <circle cx="22" cy="22" r="10" fill="white"/>
-          <text x="22" y="26" text-anchor="middle" font-size="10" font-weight="bold" fill="${color}">
-            ${rating.toFixed(1)}
-          </text>
+          ${iconContent}
         </g>
         <defs>
           <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -103,6 +183,21 @@ export function GoogleMap({
   );
   const [mapTheme, setMapTheme] = useState<MapTheme>("standard");
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+
+  // Category & Places State
+  const [activeCategory, setActiveCategory] = useState<string>("restaurant");
+  const [displayedPlaces, setDisplayedPlaces] =
+    useState<Restaurant[]>(restaurants);
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(
+    null,
+  );
+
+  // Initialize displayed places when prop changes (if on restaurant tab)
+  useMemo(() => {
+    if (activeCategory === "restaurant") {
+      setDisplayedPlaces(restaurants);
+    }
+  }, [restaurants, activeCategory]);
 
   const mapRef = useRef<google.maps.Map | null>(null);
 
@@ -155,6 +250,64 @@ export function GoogleMap({
     };
   }, [minimal, mapTheme]);
 
+  const handleCategoryClick = useCallback(
+    (categoryId: string, type: string) => {
+      setActiveCategory(categoryId);
+
+      if (categoryId === "restaurant") {
+        setDisplayedPlaces(restaurants);
+        return;
+      }
+
+      if (!mapRef.current) return;
+
+      if (!placesServiceRef.current) {
+        placesServiceRef.current = new google.maps.places.PlacesService(
+          mapRef.current,
+        );
+      }
+
+      const request = {
+        location: center,
+        radius: searchRadius,
+        type: type,
+      };
+
+      placesServiceRef.current?.nearbySearch(request, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          // Map Google Places results to Restaurant interface
+          const mappedPlaces: Restaurant[] = results.map(
+            (place) =>
+              ({
+                id: place.place_id || Math.random().toString(),
+                name: place.name || "Unknown",
+                cuisine: [categoryId] as any, // Cast for display
+                rating: place.rating || 0,
+                priceRange: (place.price_level
+                  ? "$".repeat(place.price_level)
+                  : "$$") as any,
+                priceLevel: place.price_level,
+                location: {
+                  lat: place.geometry?.location?.lat() || 0,
+                  lng: place.geometry?.location?.lng() || 0,
+                },
+                address: place.vicinity || "",
+                area: "",
+                photoUrl: place.photos?.[0]?.getUrl() || undefined,
+                dietaryOptions: [],
+                isOpen: place.opening_hours?.open_now,
+                userRatingsTotal: place.user_ratings_total,
+                type: type, // Store the type for marker styling
+              }) as unknown as Restaurant,
+          );
+
+          setDisplayedPlaces(mappedPlaces);
+        }
+      });
+    },
+    [center, restaurants, searchRadius],
+  );
+
   const handleMarkerClick = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
     if (onRestaurantClick) {
@@ -200,6 +353,31 @@ export function GoogleMap({
 
   return (
     <div className="relative w-full h-full">
+      {/* Top Navigation Bar */}
+      {!minimal && (
+        <div className="absolute top-3 left-3 right-14 z-10 flex gap-2 overflow-x-auto pb-2 scrollbar-none px-1">
+          {CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            const isActive = activeCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => handleCategoryClick(cat.id, cat.type)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-full shadow-md transition-all whitespace-nowrap text-sm font-medium",
+                  isActive
+                    ? "bg-gray-900 text-white hover:bg-gray-800"
+                    : "bg-white text-gray-700 hover:bg-gray-50",
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <GoogleMapComponent
         mapContainerStyle={mapContainerStyle}
         center={center}
@@ -264,7 +442,7 @@ export function GoogleMap({
         )}
 
         {/* Restaurant markers with enhanced design */}
-        {restaurants.map((restaurant) => (
+        {displayedPlaces.map((restaurant) => (
           <MarkerF
             key={restaurant.id}
             position={restaurant.location}
@@ -275,6 +453,7 @@ export function GoogleMap({
             icon={createMarkerIcon(
               restaurant.rating,
               selectedRestaurant?.id === restaurant.id,
+              (restaurant as any).type || "restaurant",
             )}
             zIndex={selectedRestaurant?.id === restaurant.id ? 999 : 1}
           />
@@ -480,46 +659,48 @@ export function GoogleMap({
       )}
 
       {/* Minimal mode overlay stats */}
-      {minimal && restaurants.length > 0 && (
+      {minimal && displayedPlaces.length > 0 && (
         <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg border border-gray-200">
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="w-4 h-4 text-blue-600" />
             <span className="font-semibold text-gray-900">
-              {restaurants.length}
+              {displayedPlaces.length}
             </span>
             <span className="text-gray-600">
-              {restaurants.length === 1 ? "restaurant" : "restaurants"}
+              {displayedPlaces.length === 1 ? "place" : "places"}
             </span>
           </div>
         </div>
       )}
 
       {/* Legend for marker colors - Moved to Top Left to avoid blocking fullscreen */}
-      {!minimal && restaurants.length > 0 && (
-        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-gray-200 z-10">
-          <h4 className="text-xs font-semibold text-gray-700 mb-2">
-            Rating Legend
-          </h4>
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 text-xs">
-              <div className="w-3 h-3 rounded-full bg-emerald-500" />
-              <span className="text-gray-600">4.5+ Excellent</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <div className="w-3 h-3 rounded-full bg-blue-500" />
-              <span className="text-gray-600">4.0+ Very Good</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <div className="w-3 h-3 rounded-full bg-amber-500" />
-              <span className="text-gray-600">3.5+ Good</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <span className="text-gray-600">&lt;3.5 Fair</span>
+      {!minimal &&
+        activeCategory === "restaurant" &&
+        displayedPlaces.length > 0 && (
+          <div className="absolute top-16 left-3 bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-gray-200 z-10 transition-all">
+            <h4 className="text-xs font-semibold text-gray-700 mb-2">
+              Rating Legend
+            </h4>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-xs">
+                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                <span className="text-gray-600">4.5+ Excellent</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <span className="text-gray-600">4.0+ Very Good</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <div className="w-3 h-3 rounded-full bg-amber-500" />
+                <span className="text-gray-600">3.5+ Good</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="text-gray-600">&lt;3.5 Fair</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }
