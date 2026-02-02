@@ -11,7 +11,7 @@ import { useState, useMemo, useRef, useCallback } from "react";
 import { Restaurant, Location } from "@/types/restaurant";
 import { MAP_STYLES } from "@/data/map-styles";
 import { Spinner } from "@/components/ui/spinner";
-import { MapPin, Star, Clock, DollarSign, Navigation } from "lucide-react";
+import { MapPin, Star, Navigation } from "lucide-react";
 import Image from "next/image";
 import { MapTheme } from "@/types/map";
 import { MapThemeSelector } from "@/components/map-theme-selector";
@@ -280,7 +280,7 @@ export function GoogleMap({
               disableAutoPan: true,
             }}
           >
-            <div className="w-[280px] overflow-hidden">
+            <div className="w-70 overflow-hidden">
               <div className="relative h-32 w-full bg-gray-100">
                 {hoveredRestaurant.photoUrl ? (
                   <Image
@@ -357,7 +357,7 @@ export function GoogleMap({
             position={selectedRestaurant.location}
             onCloseClick={() => setSelectedRestaurant(null)}
           >
-            <div className="w-[300px] overflow-hidden">
+            <div className="w-75 overflow-hidden">
               {/* Image Header */}
               <div className="relative h-40 w-full bg-gray-100">
                 {selectedRestaurant.photoUrl ? (
@@ -388,7 +388,7 @@ export function GoogleMap({
                     </h3>
                     <div className="flex items-center gap-1 text-xs text-gray-500">
                       <MapPin className="w-3 h-3" />
-                      <span className="line-clamp-1 max-w-[200px]">
+                      <span className="line-clamp-1 max-w-50">
                         {selectedRestaurant.address}
                       </span>
                     </div>
