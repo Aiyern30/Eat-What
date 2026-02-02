@@ -82,7 +82,12 @@ const getMarkerColor = (
   rating: number,
   type: string = "restaurant",
 ): string => {
-  if (type === "hotel" || type === "lodging") return "#ec4899"; // pink for hotels
+  if (type === "hotel" || type === "lodging") return "#ec4899"; // Pink
+  if (type === "tourist_attraction") return "#8b5cf6"; // Violet
+  if (type === "museum") return "#d97706"; // Amber-600
+  if (type === "transit_station") return "#3b82f6"; // Blue
+  if (type === "pharmacy") return "#ef4444"; // Red
+  if (type === "atm") return "#10b981"; // Emerald
 
   if (rating >= 4.5) return "#10b981"; // emerald
   if (rating >= 4.0) return "#3b82f6"; // blue
@@ -119,16 +124,37 @@ const createMarkerIcon = (
   if (type === "hotel" || type === "lodging") {
     // Bed Icon
     iconContent = `<circle cx="22" cy="22" r="16" fill="${color}"/>
-                   <g transform="translate(13, 13) scale(0.8)">
-                     <path d="M2 4v16M22 4v16M2 12h20M2 8h20" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
-                     <path d="M12 4v8" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                   </g>`;
-    // Simplify bed icon for SVG data URI manually to ensure it displays well
-    iconContent = `<circle cx="22" cy="22" r="16" fill="${color}"/>
                    <rect x="12" y="14" width="20" height="12" rx="2" fill="white"/>
                    <path d="M12 20h20" stroke="${color}" stroke-width="2"/>
                    <circle cx="16" cy="17" r="1.5" fill="${color}"/>
                    <circle cx="28" cy="17" r="1.5" fill="${color}"/>`;
+  } else if (type === "tourist_attraction") {
+    // Camera Icon
+    iconContent = `<circle cx="22" cy="22" r="16" fill="${color}"/>
+                   <path d="M14.5 13h15l-1.5-2.5h-12z" fill="white"/>
+                   <rect x="11" y="13" width="22" height="16" rx="2" fill="white"/>
+                   <circle cx="22" cy="21" r="5" stroke="${color}" stroke-width="2" fill="none"/>`;
+  } else if (type === "museum") {
+    // Landmark/Column Icon
+    iconContent = `<circle cx="22" cy="22" r="16" fill="${color}"/>
+                   <path d="M12 30h20M14 30V18M30 30V18M12 18h20L22 13zM18 30V18M26 30V18" stroke="white" stroke-width="2" stroke-linejoin="round" fill="none"/>`;
+  } else if (type === "transit_station") {
+    // Train/Bus Front Icon
+    iconContent = `<circle cx="22" cy="22" r="16" fill="${color}"/>
+                   <rect x="13" y="11" width="18" height="20" rx="3" fill="none" stroke="white" stroke-width="2"/>
+                   <path d="M13 25h18" stroke="white" stroke-width="2"/>
+                   <circle cx="17" cy="28" r="1.5" fill="white"/>
+                   <circle cx="27" cy="28" r="1.5" fill="white"/>
+                   <path d="M17 11v-3h10v3" stroke="white" stroke-width="2" fill="none"/>`;
+  } else if (type === "pharmacy") {
+    // Pill/Cross Icon
+    iconContent = `<circle cx="22" cy="22" r="16" fill="${color}"/>
+                   <rect x="20" y="12" width="4" height="20" rx="1" fill="white"/>
+                   <rect x="12" y="20" width="20" height="4" rx="1" fill="white"/>`;
+  } else if (type === "atm") {
+    // Dollar/Finance Icon
+    iconContent = `<circle cx="22" cy="22" r="16" fill="${color}"/>
+                   <text x="22" y="28" text-anchor="middle" font-size="20" font-weight="bold" fill="white">$</text>`;
   }
 
   const pulseAnimation = isSelected
@@ -538,6 +564,17 @@ export function GoogleMap({
                           return "Price Varies";
                         }
 
+                        // No pricing for some categories
+                        if (
+                          ["transit_station", "atm", "pharmacy"].includes(type)
+                        ) {
+                          return type === "atm"
+                            ? "ATM"
+                            : type === "pharmacy"
+                              ? "Pharmacy"
+                              : "Transit";
+                        }
+
                         if (level === 1) return "RM 10–20";
                         if (level === 2) return "RM 20–40";
                         if (level === 3) return "RM 40–100";
@@ -623,6 +660,17 @@ export function GoogleMap({
                         if (level === 3) return "Luxury";
                         if (level >= 4) return "Premium";
                         return "Price Varies";
+                      }
+
+                      // No pricing for some categories
+                      if (
+                        ["transit_station", "atm", "pharmacy"].includes(type)
+                      ) {
+                        return type === "atm"
+                          ? "ATM"
+                          : type === "pharmacy"
+                            ? "Pharmacy"
+                            : "Transit";
                       }
 
                       if (level === 1) return "RM 10–20";
