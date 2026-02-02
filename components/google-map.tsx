@@ -11,7 +11,7 @@ import { useState, useMemo, useRef, useCallback } from "react";
 import { Restaurant, Location } from "@/types/restaurant";
 import { MAP_STYLES } from "@/data/map-styles";
 import { Spinner } from "@/components/ui/spinner";
-import { MapPin, Star, Navigation } from "lucide-react";
+import { MapPin, Star, Navigation, Footprints } from "lucide-react";
 import Image from "next/image";
 import { MapTheme } from "@/types/map";
 import { MapThemeSelector } from "@/components/map-theme-selector";
@@ -145,7 +145,7 @@ export function GoogleMap({
       scrollwheel: true,
       mapTypeControl: false,
       fullscreenControl: !minimal,
-      streetViewControl: false,
+      streetViewControl: !minimal,
       zoomControl: !minimal,
       // Map Type & Styles
       mapTypeId: isSatellite ? mapTheme : "roadmap",
@@ -159,6 +159,15 @@ export function GoogleMap({
     setSelectedRestaurant(restaurant);
     if (onRestaurantClick) {
       onRestaurantClick(restaurant);
+    }
+  };
+
+  const handleStreetView = () => {
+    if (!mapRef.current || !selectedRestaurant) return;
+    const streetView = mapRef.current.getStreetView();
+    if (streetView) {
+      streetView.setPosition(selectedRestaurant.location);
+      streetView.setVisible(true);
     }
   };
 
@@ -438,6 +447,13 @@ export function GoogleMap({
                   >
                     <Navigation className="w-4 h-4" />
                     Directions
+                  </button>
+                  <button
+                    className="flex-0 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-all shadow-sm flex items-center justify-center"
+                    onClick={handleStreetView}
+                    title="Street View"
+                  >
+                    <Footprints className="w-4 h-4" />
                   </button>
                   <SaveButton
                     restaurantId={selectedRestaurant.id}
